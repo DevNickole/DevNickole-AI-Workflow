@@ -1,6 +1,6 @@
 {
   "name": "dev-nickole-workflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Spec-driven + TDD workflow CLI that works the same across AI coding tools",
   "author": "DevNickole",
   "repository": "github:DevNickole/DevNickole-AI-Workflow",
