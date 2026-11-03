@@ -1,7 +1,7 @@
 # dnw workflow
 
 This project uses **dnw** (dev-nickole-workflow): spec-driven development + TDD, enforced by the `dnw` CLI.
-Run it as `npx dnw <command>` when `dnw` is not on PATH.
+Run it as `npx --no-install dnw <command>` when `dnw` is not on PATH (never plain `npx dnw`, which could download an unrelated package).
 
 ## Project docs
 

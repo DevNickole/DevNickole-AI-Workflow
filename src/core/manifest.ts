@@ -16,13 +16,23 @@ export function hash(content: string): string {
   return createHash('sha256').update(content.replace(/\r\n/g, '\n')).digest('hex');
 }
 
-export function applyMarkerBlock(existing: string | null, block: string): string {
+/** Inserts or replaces the dnw block. Returns null when the markers are broken, so user text is never guessed at. */
+export function applyMarkerBlock(existing: string | null, block: string): string | null {
   const wrapped = `${START}\n${block.trimEnd()}\n${END}`;
   if (existing === null) return wrapped + '\n';
   const s = existing.indexOf(START);
   const e = existing.indexOf(END);
-  if (s !== -1 && e > s) return existing.slice(0, s) + wrapped + existing.slice(e + END.length);
-  return existing.trimEnd() + '\n\n' + wrapped + '\n';
+  if (s === -1 && e === -1) return existing.trimEnd() + '\n\n' + wrapped + '\n';
+  if (s === -1 || e < s) return null;
+  return existing.slice(0, s) + wrapped + existing.slice(e + END.length);
+}
+
+/** Warning lines for files writeManagedFiles could not update. */
+export function managedWarnings(r: { conflicts: string[]; invalid: string[] }): string[] {
+  return [
+    ...r.conflicts.map((p) => `⚠ ${p} was modified locally; new version written to ${p}.new`),
+    ...r.invalid.map((p) => `⚠ ${p} is not valid JSON and was left unchanged; fix it, then run dnw upgrade`),
+  ];
 }
 
 function manifestPath(root: string): string {
@@ -55,10 +65,13 @@ export function writeManagedFiles(
   files: AdapterFile[],
   prev: Manifest | null,
   toolVersion: string,
-): { manifest: Manifest; written: string[]; conflicts: string[] } {
+): { manifest: Manifest; written: string[]; conflicts: string[]; invalid: string[] } {
   const manifest: Manifest = { toolVersion, files: {} };
   const written: string[] = [];
+  /** kept as-is; the new version is in <path>.new */
   const conflicts: string[] = [];
+  /** existing JSON could not be parsed; left untouched, nothing written */
+  const invalid: string[] = [];
 
   for (const f of files) {
     const abs = join(root, f.path);
@@ -70,15 +83,21 @@ export function writeManagedFiles(
     manifest.files[f.path] = hash(f.content);
 
     if (f.mode === 'marker') {
-      write(abs, applyMarkerBlock(current, f.content));
-      written.push(f.path);
+      const merged = applyMarkerBlock(current, f.content);
+      if (merged === null) {
+        write(`${abs}.new`, applyMarkerBlock(null, f.content)!);
+        conflicts.push(f.path);
+      } else {
+        write(abs, merged);
+        written.push(f.path);
+      }
     } else if (f.mode === 'json-merge') {
       let base: unknown = {};
       if (current !== null) {
         try {
           base = JSON.parse(current);
         } catch {
-          conflicts.push(f.path);
+          invalid.push(f.path);
           continue;
         }
       }
@@ -92,5 +111,5 @@ export function writeManagedFiles(
       conflicts.push(f.path);
     }
   }
-  return { manifest, written, conflicts };
+  return { manifest, written, conflicts, invalid };
 }

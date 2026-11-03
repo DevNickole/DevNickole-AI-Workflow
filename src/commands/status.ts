@@ -1,4 +1,5 @@
 import { findRoot, type Ctx } from '../core/context.js';
+import { tasksWithoutEvidence } from '../core/lifecycle.js';
 import { readRuns, runKey, type RunEvidence } from '../core/runs.js';
 import { formatRef, SPEC_STATUSES, type SpecDoc } from '../core/spec-file.js';
 import { listSpecs } from '../core/spec-store.js';
@@ -46,7 +47,8 @@ export async function status(ctx: Ctx): Promise<void> {
     ctx.out(`${st.toUpperCase()}\n`);
     for (const doc of group) {
       const { detail, next } = describe(doc, runs);
-      const warn = (st === 'active' || st === 'done') && !doc.meta.approvedBy ? '  ⚠ not approved via dnw' : '';
+      let warn = (st === 'active' || st === 'done') && !doc.meta.approvedBy ? '  ⚠ not approved via dnw' : '';
+      for (const id of tasksWithoutEvidence(doc, runs)) warn += `  ⚠ ${id} done without dnw evidence`;
       const head = `  ${formatRef(doc.meta).padEnd(10)}${doc.meta.title.padEnd(18)}`;
       if (detail) {
         ctx.out(`${head}${detail}${warn}\n`);

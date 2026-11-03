@@ -5,7 +5,7 @@ import { adapterFiles } from '../adapters/index.js';
 import { readConfig, writeConfig } from '../core/config.js';
 import { findRoot, type Ctx } from '../core/context.js';
 import { DnwError } from '../core/errors.js';
-import { readManifest, writeManagedFiles, writeManifest } from '../core/manifest.js';
+import { managedWarnings, readManifest, writeManagedFiles, writeManifest } from '../core/manifest.js';
 import { packageVersion } from '../core/version.js';
 import { changelogBetween, migrations as allMigrations, pendingMigrations, type Migration } from '../migrations/index.js';
 
@@ -29,13 +29,15 @@ export async function upgrade(ctx: Ctx, opts: UpgradeOptions): Promise<void> {
   if (semver.gt(from, to)) {
     throw new DnwError(`Project uses dnw ${from}, newer than installed ${to}`, 'npm i -D dev-nickole-workflow@latest');
   }
+  // managed files are refreshed even when versions match, e.g. after fixing a file dnw could not update
+  const result = writeManagedFiles(root, adapterFiles(cfg), readManifest(root), to);
+  const { manifest } = result;
+  for (const line of managedWarnings(result)) ctx.out(`${line}\n`);
   if (from === to) {
-    ctx.out(`Already up to date (${to})\n`);
+    writeManifest(root, manifest);
+    ctx.out(`Already up to date (${to}); managed files refreshed\n`);
     return;
   }
-
-  const { manifest, conflicts } = writeManagedFiles(root, adapterFiles(cfg), readManifest(root), to);
-  for (const p of conflicts) ctx.out(`⚠ ${p} was modified locally; new version written to ${p}.new\n`);
 
   let reached = from;
   let skipped = false;

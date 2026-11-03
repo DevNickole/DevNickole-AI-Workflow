@@ -1,4 +1,5 @@
 import { DnwError } from './errors.js';
+import { runKey, type RunEvidence } from './runs.js';
 import { formatRef, type SpecDoc, type SpecTask, type SpecType, type TaskState } from './spec-file.js';
 
 export const REQUIRED_SECTIONS: Record<SpecType, string[]> = {
@@ -32,12 +33,14 @@ export function assertCanActivate(doc: SpecDoc, pairApi: SpecDoc | null, isTTY: 
   if (status !== 'review') {
     throw new DnwError(`${ref} is ${status}, expected review`, status === 'draft' ? `dnw spec review ${ref}` : undefined);
   }
-  if (doc.meta.type === 'ui' && dependsOn) {
-    if (!pairApi) throw new DnwError(`paired ${dependsOn} is missing`);
+  // pairApi is the <id>.api spec when it exists, whether it was created before or after this ui spec
+  if (doc.meta.type === 'ui' && (pairApi || dependsOn)) {
+    const apiRef = pairApi ? formatRef(pairApi.meta) : dependsOn!;
+    if (!pairApi) throw new DnwError(`paired ${apiRef} is missing`);
     const ps = pairApi.meta.status;
     if (ps !== 'active' && ps !== 'done') {
-      const next = ps === 'draft' ? `dnw spec review ${dependsOn}` : ps === 'review' ? `dnw spec activate ${dependsOn}` : undefined;
-      throw new DnwError(`paired ${dependsOn} is still in ${ps}`, next);
+      const next = ps === 'draft' ? `dnw spec review ${apiRef}` : ps === 'review' ? `dnw spec activate ${apiRef}` : undefined;
+      throw new DnwError(`paired ${apiRef} is still in ${ps}`, next);
     }
   }
   if (!isTTY) throw new DnwError('activation requires a human at an interactive terminal');
@@ -62,11 +65,26 @@ export function assertTaskInProgress(doc: SpecDoc, taskId: string): SpecTask {
   return t;
 }
 
-export function assertCanSpecDone(doc: SpecDoc): void {
+/** Tasks marked done without a recorded failing run followed by a passing run. */
+export function tasksWithoutEvidence(doc: SpecDoc, runs: Record<string, RunEvidence>): string[] {
+  const ref = formatRef(doc.meta);
+  return doc.tasks
+    .filter((t) => t.state === 'done' && !(runs[runKey(ref, t.id)]?.red && runs[runKey(ref, t.id)]?.green))
+    .map((t) => t.id);
+}
+
+export function assertCanSpecDone(doc: SpecDoc, runs: Record<string, RunEvidence>): void {
   const ref = formatRef(doc.meta);
   if (doc.meta.status !== 'active') throw new DnwError(`${ref} is ${doc.meta.status}, expected active`);
   const open = doc.tasks.filter((t) => t.state !== 'done').map((t) => t.id);
   if (open.length) throw new DnwError(`tasks not done: ${open.join(', ')}`, `dnw status`);
+  const unproven = tasksWithoutEvidence(doc, runs);
+  if (unproven.length) {
+    throw new DnwError(
+      `tasks marked done without dnw test evidence: ${unproven.join(', ')}. Reset them to [ ] and run the task loop`,
+      `dnw status`,
+    );
+  }
 }
 
 export function assertCanSupersede(doc: SpecDoc, by: SpecDoc): void {

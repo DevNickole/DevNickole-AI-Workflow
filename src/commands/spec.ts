@@ -7,6 +7,7 @@ import {
   assertCanSpecDone,
   assertCanSupersede,
 } from '../core/lifecycle.js';
+import { readRuns } from '../core/runs.js';
 import { formatRef, parseSpec, type SpecDoc, type SpecType } from '../core/spec-file.js';
 import { findSpec, findSpecOrNull, nextId, specFileName, specsDir, writeSpec } from '../core/spec-store.js';
 import { readTemplate, render } from '../core/templates.js';
@@ -52,7 +53,7 @@ export async function specReview(ctx: Ctx, ref: string): Promise<void> {
 export async function specActivate(ctx: Ctx, ref: string): Promise<void> {
   const root = findRoot(ctx.cwd);
   const doc = findSpec(root, ref);
-  const pair = doc.meta.dependsOn ? findSpecOrNull(root, doc.meta.dependsOn) : null;
+  const pair = doc.meta.type === 'ui' ? findSpecOrNull(root, `${doc.meta.id}.api`) : null;
   guard('activate', ref, () => assertCanActivate(doc, pair, ctx.isTTY));
   if (!(await ctx.confirm(`Approve ${ref} "${doc.meta.title}" and set it active?`))) {
     throw new DnwError('Activation cancelled');
@@ -66,8 +67,9 @@ export async function specActivate(ctx: Ctx, ref: string): Promise<void> {
 }
 
 export async function specDone(ctx: Ctx, ref: string): Promise<void> {
-  const doc = findSpec(findRoot(ctx.cwd), ref);
-  guard('finish', ref, () => assertCanSpecDone(doc));
+  const root = findRoot(ctx.cwd);
+  const doc = findSpec(root, ref);
+  guard('finish', ref, () => assertCanSpecDone(doc, readRuns(root)));
   doc.meta.status = 'done';
   writeSpec(doc);
   ctx.out(`✓ ${ref} → done\n`);

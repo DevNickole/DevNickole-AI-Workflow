@@ -89,10 +89,13 @@ describe('task in progress', () => {
 });
 
 describe('spec done', () => {
-  test('allowed', () => expect(() => assertCanSpecDone(makeDoc({ status: 'active' }, [task('T1', 'done')]))).not.toThrow());
-  test('not active', () => expect(err(() => assertCanSpecDone(makeDoc({ status: 'review' }))).message).toContain('expected active'));
+  test('allowed', () => {
+    const runs = { '0001.api/T1': { red: { at: 'a', exitCode: 1 }, green: { at: 'b', exitCode: 0 } } };
+    expect(() => assertCanSpecDone(makeDoc({ status: 'active' }, [task('T1', 'done')]), runs)).not.toThrow();
+  });
+  test('not active', () => expect(err(() => assertCanSpecDone(makeDoc({ status: 'review' }), {})).message).toContain('expected active'));
   test('tasks open', () =>
-    expect(err(() => assertCanSpecDone(makeDoc({ status: 'active' }, [task('T1', 'done'), task('T2'), task('T3', 'in_progress')]))).message)
+    expect(err(() => assertCanSpecDone(makeDoc({ status: 'active' }, [task('T1', 'done'), task('T2'), task('T3', 'in_progress')]), {})).message)
       .toContain('tasks not done: T2, T3'));
 });
 

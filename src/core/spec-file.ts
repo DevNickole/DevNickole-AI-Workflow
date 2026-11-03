@@ -34,6 +34,10 @@ export interface SpecDoc {
   meta: SpecMeta;
   body: string;
   eol: '\n' | '\r\n';
+  /** file started with a UTF-8 byte-order mark; kept on write */
+  bom: boolean;
+  /** frontmatter keys dnw does not manage, kept on write */
+  extra: Record<string, unknown>;
   sections: Record<string, string>;
   tasks: SpecTask[];
 }
@@ -50,6 +54,8 @@ const STATE: Record<string, TaskState> = { ' ': 'todo', '~': 'in_progress', x: '
 const META_KEYS: (keyof SpecMeta)[] = ['id', 'type', 'title', 'status', 'dependsOn', 'approvedBy', 'supersededBy'];
 
 export function parseSpec(text: string, path: string): SpecDoc {
+  const bom = text.startsWith('﻿');
+  if (bom) text = text.slice(1);
   const eol = text.includes('\r\n') ? '\r\n' : '\n';
   const lines = text.replace(/\r\n/g, '\n').split('\n');
   if (lines[0] !== '---') throw new SpecParseError(path, 1, 'missing frontmatter (expected "---" on line 1)');
@@ -97,6 +103,7 @@ export function parseSpec(text: string, path: string): SpecDoc {
     approvedBy: str('approvedBy'),
     supersededBy: str('supersededBy'),
   };
+  const extra = Object.fromEntries(Object.entries(raw).filter(([k]) => !(META_KEYS as string[]).includes(k)));
 
   const bodyStart = end + 1;
   const bodyLines = lines.slice(bodyStart);
@@ -104,25 +111,30 @@ export function parseSpec(text: string, path: string): SpecDoc {
   const tasks: SpecTask[] = [];
   let current: string | null = null;
   const buf: Record<string, string[]> = {};
+  let inComment = false;
 
   bodyLines.forEach((l, i) => {
+    const commented = inComment || l.trimStart().startsWith('<!--');
+    inComment = endsInsideComment(l, inComment);
     const h = /^## (.+?)\s*$/.exec(l);
-    if (h) {
+    if (h && !commented) {
       current = h[1];
       buf[current] = [];
       return;
     }
     if (current === null) return;
     buf[current].push(l);
-    if (current === 'Tasks') {
+    if (current === 'Tasks' && !commented) {
       const m = TASK_RE.exec(l);
       if (m) {
+        const line = bodyStart + i + 1;
+        if (tasks.some((t) => t.id === m[2])) throw new SpecParseError(path, line, `duplicate task id ${m[2]}`);
         tasks.push({
           id: m[2],
           title: m[3],
           state: STATE[m[1]],
           testPath: m[4] ?? null,
-          line: bodyStart + i + 1,
+          line,
           bodyIndex: i,
         });
       }
@@ -132,21 +144,34 @@ export function parseSpec(text: string, path: string): SpecDoc {
     sections[name] = content.join('\n').replace(/<!--[\s\S]*?-->/g, '').trim();
   }
 
-  return { path, meta, body: bodyLines.join('\n'), eol, sections, tasks };
+  return { path, meta, body: bodyLines.join('\n'), eol, bom, extra, sections, tasks };
 }
 
+/** Whether an HTML comment is still open at the end of `line`, given whether one was open at its start. */
+function endsInsideComment(line: string, open: boolean): boolean {
+  let pos = 0;
+  for (;;) {
+    const i = line.indexOf(open ? '-->' : '<!--', pos);
+    if (i === -1) return open;
+    pos = i + (open ? 3 : 4);
+    open = !open;
+  }
+}
+
+// lineWidth 0: never fold long values onto a second line (that breaks implicit keys)
 function scalar(value: string | null): string {
-  return stringify(value).trimEnd();
+  return stringify(value, { lineWidth: 0 }).trimEnd();
 }
 
 export function serializeSpec(doc: SpecDoc): string {
   const fm = META_KEYS.map((k) => (k === 'id' ? `id: ${JSON.stringify(doc.meta.id)}` : `${k}: ${scalar(doc.meta[k])}`));
+  if (Object.keys(doc.extra).length) fm.push(stringify(doc.extra, { lineWidth: 0 }).trimEnd());
   const body = doc.body.split('\n');
   for (const t of doc.tasks) {
     body[t.bodyIndex] = body[t.bodyIndex].replace(/^- \[( |~|x)\]/, `- [${MARKER[t.state]}]`);
   }
   const out = ['---', ...fm, '---', ...body].join('\n');
-  return doc.eol === '\r\n' ? out.replace(/\n/g, '\r\n') : out;
+  return (doc.bom ? '﻿' : '') + (doc.eol === '\r\n' ? out.replace(/\n/g, '\r\n') : out);
 }
 
 export function formatRef(meta: Pick<SpecMeta, 'id' | 'type'>): string {

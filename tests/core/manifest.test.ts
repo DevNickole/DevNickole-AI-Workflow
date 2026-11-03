@@ -68,7 +68,7 @@ describe('writeManagedFiles', () => {
     const root = tmpProject();
     put(root, '.claude/settings.json', '{ broken');
     const r = writeManagedFiles(root, [{ path: '.claude/settings.json', content: '{"a":1}', mode: 'json-merge' }], null, '0.1.0');
-    expect(r.conflicts).toEqual(['.claude/settings.json']);
+    expect(r.invalid).toEqual(['.claude/settings.json']);
     expect(get(root, '.claude/settings.json')).toBe('{ broken');
     expect(existsSync(join(root, '.claude/settings.json.new'))).toBe(false);
   });

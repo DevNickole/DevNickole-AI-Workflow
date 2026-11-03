@@ -44,7 +44,9 @@ export function nextId(root: string): string {
 }
 
 export function slugify(title: string): string {
-  return (title.toLowerCase().match(/[a-z0-9]+/g) ?? ['spec']).join('-');
+  const slug = (title.toLowerCase().match(/[a-z0-9]+/g) ?? ['spec']).join('-');
+  // keep file names short enough for Windows paths
+  return slug.slice(0, 50).replace(/-+$/, '');
 }
 
 export function specFileName(id: string, title: string, type: SpecType): string {

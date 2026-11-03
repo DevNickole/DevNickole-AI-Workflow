@@ -4,7 +4,7 @@ import { adapterFiles, superpowersSteps } from '../adapters/index.js';
 import { configPath, writeConfig, type AiTool, type DnwConfig, type StackId } from '../core/config.js';
 import type { Ctx } from '../core/context.js';
 import { DnwError } from '../core/errors.js';
-import { writeManagedFiles, writeManifest } from '../core/manifest.js';
+import { managedWarnings, writeManagedFiles, writeManifest } from '../core/manifest.js';
 import { detectStack, recommend } from '../core/stack.js';
 import { readTemplate } from '../core/templates.js';
 import { packageVersion } from '../core/version.js';
@@ -65,14 +65,14 @@ export async function init(ctx: Ctx, opts: InitOptions): Promise<void> {
 
   const cfg: DnwConfig = { toolVersion: packageVersion(), stack, testCommand, testFileCommand, aiTools, superpowers };
   writeConfig(root, cfg);
-  const { manifest, written, conflicts } = writeManagedFiles(root, adapterFiles(cfg), null, cfg.toolVersion);
-  writeManifest(root, manifest);
+  const result = writeManagedFiles(root, adapterFiles(cfg), null, cfg.toolVersion);
+  writeManifest(root, result.manifest);
 
   ctx.out(`✓ Initialized dnw ${cfg.toolVersion}\n`);
-  for (const p of [...created, '.dnw/config.json', ...written]) ctx.out(`  ${p}\n`);
-  for (const p of conflicts) ctx.out(`⚠ ${p} could not be updated; see ${p}.new or fix the file and run dnw upgrade\n`);
+  for (const p of [...created, '.dnw/config.json', ...result.written]) ctx.out(`  ${p}\n`);
+  for (const line of managedWarnings(result)) ctx.out(`${line}\n`);
 
-  if (superpowers && aiTools.includes('claude')) {
+  if (superpowers && result.written.includes('.claude/settings.json')) {
     ctx.out('✓ superpowers enabled in .claude/settings.json (teammates are prompted to install it)\n');
   }
   for (const step of superpowersSteps(cfg)) {
