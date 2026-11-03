@@ -64,7 +64,35 @@ AGENTS.md                           ChatGPT/Codex
 
 ## Add dnw to an existing project
 
-`dnw init` adapts to what is already there and changes nothing it does not own:
+Adopting dnw in a project that already exists takes two steps.
+
+**1. `dnw init` reads the project and asks you.** It shows everything it found before asking anything:
+
+```
+Found in this project:
+  Stack          flutter · tests: flutter test {file} (flutter_test)
+  Docs           architecture  → docs/architecture.md (existing)
+                 products      → docs/mvp.md (existing)
+                 design system → lib/theme/ (existing)
+  AI tools       Claude Code, Antigravity
+  Workflow       commands: /dm, /generate-setup · task docs: docs/tasks/ (5 files)
+? Use these settings? (Y/n)
+```
+
+Answer yes to accept it all, or no to go through each setting with the detected value as the default. If the project
+already has its own workflow (custom AI commands, `docs/tasks/`, `docs/plans/`, spec-kit `specs/`, ...), `init` asks
+how to treat it:
+
+- **Keep it alongside dnw:** nothing changes; the AI instructions name both, and new work becomes dnw specs.
+- **Convert open tasks:** during onboarding the AI turns each open task doc into a dnw draft spec and marks the old
+  file as migrated. Nothing is deleted.
+
+**2. Onboarding: your AI learns the project.** Ask your AI to run `dnw onboard` (in Claude Code: `/dnw-onboard`).
+It prints a checklist tailored to the project. The AI reads the code, drafts or extends the architecture, products
+and design-system docs from it, and asks you questions one at a time about what code cannot show: vision, users,
+goals, and why decisions were made. It finishes with `dnw onboard --done`. Until then, `dnw status` reminds you.
+
+What `init` keeps from your setup:
 
 | Already in the project | What dnw does |
 |---|---|
@@ -115,6 +143,7 @@ spec new -> draft -> review -> active -> (tasks, one at a time, SDD + TDD) -> do
 | `dnw spec supersede <ref> --by <ref>` | Mark a spec as replaced. |
 | `dnw status` | Every spec with the next allowed command, plus docs that are still templates. Works from any subfolder. |
 | `dnw docs add [kind]` | Add fillable templates for missing architecture, products or design-system docs. |
+| `dnw onboard [--done]` | Checklist for your AI to learn the project (read code, write docs, ask about gaps); `--done` marks it complete. |
 | `dnw upgrade` | Refresh managed files and run migrations after updating dnw. |
 
 A `<ref>` is `<id>.<type>`, e.g. `0001.api`.

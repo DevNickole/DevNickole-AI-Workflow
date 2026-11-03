@@ -1,4 +1,4 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AiTool, DocKey } from './config.js';
 import { readPackageJson } from './stack.js';
@@ -46,4 +46,40 @@ export function detectDnwCommand(root: string): string {
   const pkg = readPackageJson(root);
   const deps = { ...pkg?.dependencies, ...pkg?.devDependencies };
   return 'dev-nickole-workflow' in deps ? 'npx --no-install dnw' : 'dnw';
+}
+
+/** Folders that hold custom AI commands; dnw's own `dnw-*` commands are skipped. */
+const COMMAND_DIRS = ['.claude/commands/', '.agents/workflows/', '.agent/workflows/'];
+
+/** Folders other workflows keep task, plan or spec docs in. dnw's own docs/specs/ is not one of them. */
+const TASK_DIRS = ['docs/tasks/', 'docs/plans/', 'docs/superpowers/specs/', 'docs/superpowers/plans/', 'specs/', '.kiro/specs/', 'tasks/'];
+
+function markdownFiles(root: string, dir: string, recursive: boolean): string[] {
+  const abs = join(root, dir);
+  if (!existsSync(abs) || !statSync(abs).isDirectory()) return [];
+  return readdirSync(abs, { recursive, withFileTypes: true })
+    .filter((e) => e.isFile() && e.name.endsWith('.md'))
+    .map((e) => e.name);
+}
+
+export interface DetectedWorkflow {
+  commands: string[];
+  taskDirs: { path: string; files: number }[];
+}
+
+/** A workflow the project already had before dnw: custom AI commands and folders of task or plan docs. */
+export function detectExistingWorkflow(root: string): DetectedWorkflow {
+  const commands = COMMAND_DIRS.flatMap((dir) =>
+    markdownFiles(root, dir, false)
+      .filter((f) => !f.startsWith('dnw-'))
+      .sort()
+      .map((f) => dir + f),
+  );
+  const taskDirs = TASK_DIRS.map((path) => ({ path, files: markdownFiles(root, path, true).length })).filter((d) => d.files > 0);
+  return { commands, taskDirs };
+}
+
+/** How a command file is invoked in chat, e.g. .claude/commands/dm.md → /dm. */
+export function commandName(path: string): string {
+  return '/' + path.slice(path.lastIndexOf('/') + 1).replace(/\.md$/, '');
 }

@@ -20,6 +20,19 @@ export interface DnwConfig {
   docs?: DocsPaths;
   /** how generated instructions invoke dnw; absent in older configs */
   command?: string;
+  /** a workflow the project had before dnw, and how dnw treats it */
+  existingWorkflow?: ExistingWorkflow;
+  /** false until the AI onboarding is done; absent in older configs, which are not reminded */
+  onboarded?: boolean;
+}
+
+export interface ExistingWorkflow {
+  /** alongside: both stay in use; convert: open tasks become dnw draft specs during onboarding */
+  mode: 'alongside' | 'convert';
+  /** custom AI command files, e.g. .claude/commands/dm.md */
+  commands: string[];
+  /** folders of task or plan docs, e.g. docs/tasks/ */
+  taskDirs: string[];
 }
 
 export const DEFAULT_DOCS: DocsPaths = {

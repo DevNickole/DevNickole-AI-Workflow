@@ -31,6 +31,10 @@ export function createDoc(root, path, template) {
     writeFileSync(file, readTemplate(`docs-readme/${template}.md`));
     return true;
 }
+/** Number of template sections still to fill in a doc's text. */
+export function fillHints(content) {
+    return (content.match(FILL_HINT) ?? []).length;
+}
 /** Mapped docs that still contain template hints, with how many sections are left. */
 export function unfilledDocs(root, cfg) {
     const docs = docsPaths(cfg);

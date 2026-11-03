@@ -29,9 +29,13 @@ done. If a doc is missing, `dnw docs add` creates its template. `dnw status` lis
 - Never run `dnw spec activate`. A human approves specs.
 - Implement only tasks of `active` specs, one task at a time.
 - When unsure what to do next, run `dnw status`.
+- If `dnw status` says onboarding is not done, run `dnw onboard` and work through its steps with the user before
+  anything else.
 
 ## Commands
 
+- `dnw onboard`: a checklist for learning this project: read the code, write the docs, ask the user about gaps.
+  Run `dnw onboard --done` when finished.
 - `dnw spec new "<title>" --type api|ui [--id <id>]`: create a draft. Then fill every section and the task list.
 - `dnw spec review <ref>`: draft → review, once every section and task is filled in.
 - `dnw spec done <ref>`: after every task is done.
@@ -46,4 +50,4 @@ done. If a doc is missing, `dnw docs add` creates its template. `dnw status` lis
 4. Implement the minimum code to make it pass.
 5. `dnw task done <ref> <taskId>`: the task test and the full suite (`{{testCommand}}`) must pass.
 6. Continue with the next task shown in the output.
-{{superpowersSection}}
+{{workflowSection}}{{superpowersSection}}

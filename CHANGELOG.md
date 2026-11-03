@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- `dnw init` shows what it found in the project (stack, tests, docs, AI tools, existing workflow) and asks to use it in one keypress, or to go through each setting.
+- Detects existing workflows (custom AI commands, `docs/tasks/`, `docs/plans/`, spec-kit `specs/`, ...) and asks to keep them alongside dnw or convert open tasks into dnw specs.
+- `dnw onboard`: a project-specific checklist for your AI to read the code, write the docs and ask you about gaps; `--done` finishes it. `dnw status` reminds until then. Claude Code: `/dnw-onboard`.
+
 ## 0.3.0
 
 - Fillable templates for architecture, products and design-system docs. `dnw init` writes them for new doc locations.

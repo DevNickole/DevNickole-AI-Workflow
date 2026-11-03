@@ -153,6 +153,7 @@ spec new -> draft -> review -> active -> (tasks, one at a time, SDD+TDD) -> done
 | `dnw spec supersede <ref> --by <ref>` | any → `superseded` | Target spec exists and has the same type. Sets `supersededBy`. |
 | `dnw status` | — | Lists docs that are still unfilled templates, then specs grouped by status, the in-progress task per active spec, and the next allowed command. |
 | `dnw docs add [architecture\|products\|design-system]` | — | Writes the fillable template for each mapped doc location that does not exist yet (all missing ones when no kind is given). Never overwrites or writes into an existing file or folder; naming an existing one is an error. |
+| `dnw onboard [--done]` | — | Prints the onboarding checklist (§5.2); `--done` sets `onboarded: true`. |
 | `dnw upgrade` | — | See section 6. |
 
 ### Running a single task's test
@@ -179,6 +180,8 @@ Interactive flow:
 
 `init` must work in new **and existing** projects: it adopts what is already there and changes nothing it does not own.
 
+It detects everything first (steps 1–5a) and prints a "Found in this project" summary: stack and test commands, each doc location marked existing or new, AI tools, and any existing workflow. Interactive runs then ask "Use these settings?": yes accepts every detected value at once; no walks through steps 2–5 with the detected values as defaults. When no test commands could be detected, the summary is shown but the per-setting questions are always asked. The workflow question (5a) and superpowers (6) are asked either way. `config.onboarded` is set to `false`.
+
 0. Refuse when the folder is inside another dnw project (a parent has `.dnw/config.json`); name that root.
 1. Detect stack: `pubspec.yaml` → Flutter; `artisan` or `laravel/framework` in `composer.json` → Laravel; other `composer.json` → PHP (all checked before `package.json`: Flutter repos may carry a tooling `package.json`, and every Laravel app ships one for Vite that would read as Next.js); then `package.json` (Next.js / React vs Node API), `go.mod`, `pyproject.toml`/`requirements.txt`; preselect the guess.
 2. **Stack:** Next.js/React, Node API, Flutter/Dart, Go, Python, Other.
@@ -203,6 +206,7 @@ Interactive flow:
 
    Defaults when nothing is found: `docs/architecture/`, `docs/products/`, `docs/design-system/`. `docs/specs/` is always dnw's.
 5. **AI tools** (multi-select), preselected from what exists: `CLAUDE.md`/`.claude/` → Claude, `AGENTS.md` → Codex, `.agents/`/`.agent/`/`GEMINI.md` → Antigravity.
+5a. **Existing workflow:** custom AI commands (`.claude/commands/*.md` other than `dnw-*`, `.agents/workflows/*.md`, `.agent/workflows/*.md`) and task or plan folders containing Markdown (`docs/tasks/`, `docs/plans/`, `docs/superpowers/specs/`, `docs/superpowers/plans/`, `specs/`, `.kiro/specs/`, `tasks/`). When any is found, ask: keep alongside dnw, or convert open tasks into dnw draft specs during onboarding (`--yes`: alongside). Saved as `config.existingWorkflow { mode, commands, taskDirs }`.
 6. **Install superpowers?** (default yes; skipped when no AI tools selected). See section 6.1.
 7. Create only missing doc locations and `docs/specs/`. Existing files are never overwritten. A new architecture, products or design-system location gets its fillable template (§5.1) as `README.md` in a folder, or as the named Markdown file.
 8. `config.command`: `npx --no-install dnw` when `package.json` lists `dev-nickole-workflow`, else `dnw`. Generated instructions use it.
@@ -214,6 +218,12 @@ Non-interactive: `dnw init --yes [--stack nextjs] [--ai claude,codex] [--no-supe
 Configs without `docs` or `command` (older versions) fall back to the default folders and `npx --no-install dnw`.
 
 Re-running `init` on an initialized project exits with a message pointing to `dnw upgrade`.
+
+### 5.2 Onboarding
+
+`dnw onboard` prints a checklist for the AI agent, built from the project and config: manifests and source folders to read, existing AI instruction files, each mapped doc (template with N sections to fill: draft from the code; existing doc: propose additions, never rewrite; existing folder: source of truth; missing: `dnw docs add <kind>` first), the existing workflow (alongside: named, read for history; convert: per task folder, `dnw spec new` for each open task and a `> Migrated to dnw spec <ref>` line at the top of the old file, never delete), and the rule to ask the user one question at a time only about what code cannot show. It ends with `dnw onboard --done`, which sets `config.onboarded = true`.
+
+While `onboarded` is `false`, `dnw status` prints `⚠ Onboarding not done. Ask your AI to run: <dnw> onboard`. Configs without the field (written before onboarding existed) are not reminded. The AI instructions tell every agent to run `dnw onboard` when status says so, and include an "Existing workflow" section when `config.existingWorkflow` is set. Claude Code also gets `/dnw-onboard`.
 
 ### 5.1 Docs templates
 

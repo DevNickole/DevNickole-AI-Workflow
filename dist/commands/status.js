@@ -1,4 +1,4 @@
-import { readConfig } from '../core/config.js';
+import { dnwCommand, readConfig } from '../core/config.js';
 import { findRoot } from '../core/context.js';
 import { unfilledDocs } from '../core/docs.js';
 import { tasksWithoutEvidence } from '../core/lifecycle.js';
@@ -34,7 +34,10 @@ function describe(doc, runs) {
 }
 export async function status(ctx) {
     const root = findRoot(ctx.cwd);
-    for (const d of unfilledDocs(root, readConfig(root))) {
+    const cfg = readConfig(root);
+    if (cfg.onboarded === false)
+        ctx.out(`⚠ Onboarding not done. Ask your AI to run: ${dnwCommand(cfg)} onboard\n`);
+    for (const d of unfilledDocs(root, cfg)) {
         ctx.out(`⚠ ${d.path} is still a template (${d.remaining} sections to fill)\n`);
     }
     const specs = listSpecs(root);

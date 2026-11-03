@@ -44,6 +44,8 @@ test('--yes adopts the existing layout', async () => {
     superpowers: true,
     docs: { architecture: 'docs/architecture.md', products: 'docs/mvp.md', designSystem: 'lib/theme/' },
     command: 'dnw',
+    existingWorkflow: { mode: 'alongside', commands: ['.claude/commands/dm.md'], taskDirs: ['docs/tasks/'] },
+    onboarded: false,
   });
 
   // no duplicate doc locations; specs folder added
@@ -74,6 +76,7 @@ test('interactive init preselects detected tools and suggests detected docs', as
   const ctx = testCtx({
     cwd: root,
     run: noAgy,
+    confirm: async (m) => !m.startsWith('Use these settings'),
     select: async (_m, _c, def) => def as never,
     input: async (m, def) => (inputs.push([m, def]), def),
     checkbox: async (_m, choices) => ((toolChoices = choices), choices.filter((c) => c.checked).map((c) => c.value)) as never,

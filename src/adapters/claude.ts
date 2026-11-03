@@ -45,6 +45,12 @@ const COMMANDS: { name: string; description: string; run: string; then: string }
     run: 'npx --no-install dnw docs add $ARGUMENTS',
     then: 'Then help the user fill each template that still has <!-- fill: --> hints: ask about one section at a time, write the answers in, and delete each hint once its section is done.',
   },
+  {
+    name: 'onboard',
+    description: 'Learn this project: read the code, write the docs, ask the user about gaps',
+    run: 'npx --no-install dnw onboard',
+    then: 'Work through every step it prints, in order. Ask the user one question at a time, only about what the code cannot tell you. When all steps are done, run it again with --done.',
+  },
 ];
 
 export function claudeFiles(cfg: DnwConfig): AdapterFile[] {

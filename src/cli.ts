@@ -1,6 +1,7 @@
 import { Command, CommanderError, Option } from 'commander';
 import { docsAdd } from './commands/docs.js';
 import { init } from './commands/init.js';
+import { onboard } from './commands/onboard.js';
 import { upgrade } from './commands/upgrade.js';
 import { readConfig, type AiTool, type StackId } from './core/config.js';
 import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
@@ -100,6 +101,12 @@ function buildProgram(ctx: Ctx): Command {
     .command('add [kind]')
     .description('add templates for missing docs (architecture, products, design-system); never overwrites')
     .action((kind?: string) => docsAdd(ctx, kind as DocKind | undefined));
+
+  program
+    .command('onboard')
+    .description('checklist for your AI to learn this project: read the code, write the docs, ask about gaps')
+    .option('--done', 'mark onboarding complete')
+    .action((o: { done?: boolean }) => onboard(ctx, { done: o.done }));
 
   for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands, ...docs.commands]) {
     cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });

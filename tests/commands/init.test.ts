@@ -20,6 +20,7 @@ test('--yes with nextjs and claude', async () => {
     superpowers: true,
     docs: { architecture: 'docs/architecture/', products: 'docs/products/', designSystem: 'docs/design-system/' },
     command: 'dnw',
+    onboarded: false,
   });
   expect(existsSync(join(root, 'docs/specs/README.md'))).toBe(false); // docs/specs already existed in tmpProject
   expect(existsSync(join(root, 'docs/architecture/README.md'))).toBe(true);
