@@ -1,5 +1,6 @@
 import { Command, CommanderError, Option } from 'commander';
 import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
+import { taskDone, taskRed, taskStart } from './commands/task.js';
 import { defaultCtx, type Ctx } from './core/context.js';
 import type { SpecType } from './core/spec-file.js';
 import { DnwError } from './core/errors.js';
@@ -33,7 +34,21 @@ function buildProgram(ctx: Ctx): Command {
     .requiredOption('--by <ref>', 'the replacing spec')
     .action((ref: string, o: { by: string }) => specSupersede(ctx, ref, o.by));
 
-  for (const cmd of [program, ...program.commands, ...spec.commands]) {
+  const task = program.command('task').description('Run one spec task through the SDD + TDD loop');
+  task
+    .command('start <ref> <taskId>')
+    .description('todo → in progress')
+    .action((ref: string, id: string) => taskStart(ctx, ref, id));
+  task
+    .command('red <ref> <taskId>')
+    .description("run the task's test and record that it fails")
+    .action((ref: string, id: string) => taskRed(ctx, ref, id));
+  task
+    .command('done <ref> <taskId>')
+    .description("task test + full suite must pass; in progress → done")
+    .action((ref: string, id: string) => taskDone(ctx, ref, id));
+
+  for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands]) {
     cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
   }
   return program;
