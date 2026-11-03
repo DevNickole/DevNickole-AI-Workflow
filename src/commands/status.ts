@@ -49,7 +49,7 @@ export async function status(ctx: Ctx): Promise<void> {
       const { detail, next } = describe(doc, runs);
       let warn = (st === 'active' || st === 'done') && !doc.meta.approvedBy ? '  ⚠ not approved via dnw' : '';
       for (const id of tasksWithoutEvidence(doc, runs)) warn += `  ⚠ ${id} done without dnw evidence`;
-      const head = `  ${formatRef(doc.meta).padEnd(10)}${doc.meta.title.padEnd(18)}`;
+      const head = `  ${formatRef(doc.meta).padEnd(10)}${doc.meta.title.padEnd(Math.max(18, doc.meta.title.length + 2))}`;
       if (detail) {
         ctx.out(`${head}${detail}${warn}\n`);
         if (next) ctx.out(`${INDENT}Next: ${next}\n`);

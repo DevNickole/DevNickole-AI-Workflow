@@ -59,3 +59,9 @@ test('works from a subdirectory', async () => {
   mkdirSync(sub, { recursive: true });
   expect(await run(root, sub)).toContain('0001.api');
 });
+
+test('long titles stay separated from the next command', async () => {
+  const root = initProject();
+  spec(root, '0001', 'api', 'Missing cat reports', 'draft');
+  expect(await run(root)).toContain('Missing cat reports  Next: dnw spec review 0001.api');
+});
