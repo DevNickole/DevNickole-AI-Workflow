@@ -12,12 +12,12 @@ workflow stays the same whichever AI coding tool each teammate uses: Claude Code
 
 dnw installs straight from GitHub; it is not on the npm registry. You need Node 20+ and git.
 Pin a release tag (`#v0.1.0`) so the whole team runs the same version. See
-[releases](https://github.com/DevNickole/devNickoleWorkflow/tags) for the latest tag.
+[releases](https://github.com/DevNickole/DevNickole-AI-Workflow/tags) for the latest tag.
 
 Node projects (saved in `package.json`, so teammates get it with `npm install`):
 
 ```bash
-npm i -D github:DevNickole/devNickoleWorkflow#v0.1.0
+npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.1.0
 ```
 
 ```bash
@@ -27,7 +27,7 @@ npx dnw init
 Any other project (Flutter, Go, Python, ...), installed once per machine:
 
 ```bash
-npm i -g github:DevNickole/devNickoleWorkflow#v0.1.0
+npm i -g github:DevNickole/DevNickole-AI-Workflow#v0.1.0
 ```
 
 ```bash
@@ -109,7 +109,7 @@ dnw task start 0001.api T1   ->  write the test  ->  dnw task red 0001.api T1
 Install the newer tag the same way you installed dnw, then run `dnw upgrade` in the project. Node projects:
 
 ```bash
-npm i -D github:DevNickole/devNickoleWorkflow#v0.2.0
+npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.2.0
 ```
 
 ```bash
@@ -119,7 +119,7 @@ npx dnw upgrade
 Other projects:
 
 ```bash
-npm i -g github:DevNickole/devNickoleWorkflow#v0.2.0
+npm i -g github:DevNickole/DevNickole-AI-Workflow#v0.2.0
 ```
 
 ```bash

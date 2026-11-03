@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "description": "Spec-driven + TDD workflow CLI that works the same across AI coding tools",
   "author": "DevNickole",
-  "repository": "github:DevNickole/devNickoleWorkflow",
-  "homepage": "https://github.com/DevNickole/devNickoleWorkflow#readme",
-  "bugs": "https://github.com/DevNickole/devNickoleWorkflow/issues",
+  "repository": "github:DevNickole/DevNickole-AI-Workflow",
+  "homepage": "https://github.com/DevNickole/DevNickole-AI-Workflow#readme",
+  "bugs": "https://github.com/DevNickole/DevNickole-AI-Workflow/issues",
   "type": "module",
   "bin": {
     "dnw": "dist/bin.js"

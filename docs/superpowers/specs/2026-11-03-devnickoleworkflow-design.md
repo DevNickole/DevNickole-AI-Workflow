@@ -12,7 +12,7 @@ A CLI that installs a personal spec-driven development (SDD) + TDD workflow into
 
 ### Goals
 
-- Installable per project from GitHub (`npm i -D github:DevNickole/devNickoleWorkflow#vX.Y.Z` or `npm i -g ...`, then `dnw init`); not published to the npm registry.
+- Installable per project from GitHub (`npm i -D github:DevNickole/DevNickole-AI-Workflow#vX.Y.Z` or `npm i -g ...`, then `dnw init`); not published to the npm registry.
 - Source lives in the author's GitHub repo; released as versioned npm packages.
 - Upgradable over time without overwriting project-owned content.
 - Workflow rules are **enforced by the CLI**, not by AI prompt compliance, so behavior is identical across AI tools.
@@ -253,7 +253,7 @@ The rendered instructions gain a "Superpowers" section that maps the two workflo
 
 ## 7. Versioning and upgrades
 
-- Distribution: installed from the public GitHub repo `DevNickole/devNickoleWorkflow`, pinned to a release tag (`#vX.Y.Z`). The built `dist/` is committed so git installs need no build step (a `prepare` build fails for `npm i -g` of git dependencies: npm passes `global` to the inner install, so devDependencies such as TypeScript are not installed next to the package). The `version` script rebuilds and stages `dist/` into every release commit. Node projects use `npm i -D github:...` (team pinned via `package.json`); other projects use `npm i -g github:...`. The CLI warns when its version differs from `config.toolVersion`, and install hints are derived from the `repository` field.
+- Distribution: installed from the public GitHub repo `DevNickole/DevNickole-AI-Workflow`, pinned to a release tag (`#vX.Y.Z`). The built `dist/` is committed so git installs need no build step (a `prepare` build fails for `npm i -g` of git dependencies: npm passes `global` to the inner install, so devDependencies such as TypeScript are not installed next to the package). The `version` script rebuilds and stages `dist/` into every release commit. Node projects use `npm i -D github:...` (team pinned via `package.json`); other projects use `npm i -g github:...`. The CLI warns when its version differs from `config.toolVersion`, and install hints are derived from the `repository` field.
 - Releases follow semver and are git tags (`npm version` + `git push --follow-tags`). Breaking changes to spec format require a migration.
 
 `dnw upgrade`:
