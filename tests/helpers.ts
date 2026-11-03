@@ -1,4 +1,6 @@
 import type { Ctx } from '../src/core/context.js';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { writeConfig, type DnwConfig } from '../src/core/config.js';
 import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -36,4 +38,24 @@ export function testCtx(over: Partial<Ctx> = {}): TestCtx {
     outText: () => out.join(''),
     errText: () => err.join(''),
   };
+}
+
+export function initProject(over: Partial<DnwConfig> = {}): string {
+  const root = tmpProject();
+  writeConfig(root, {
+    toolVersion: '0.1.0',
+    stack: 'node-api',
+    testCommand: 'npm test',
+    testFileCommand: 'npx vitest run {file}',
+    aiTools: [],
+    superpowers: false,
+    ...over,
+  });
+  return root;
+}
+
+/** Replace every template hint with content and add tasks, like an AI filling a draft. */
+export function fillSpec(path: string, tasks = ['- [ ] T1: Does the thing (test: tests/t1.test.ts)']): void {
+  const text = readFileSync(path, 'utf8').replace(/<!--[\s\S]*?-->/g, 'Filled.');
+  writeFileSync(path, text.trimEnd() + '\n' + tasks.join('\n') + '\n');
 }

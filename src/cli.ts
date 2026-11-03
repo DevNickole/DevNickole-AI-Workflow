@@ -1,5 +1,7 @@
-import { Command, CommanderError } from 'commander';
+import { Command, CommanderError, Option } from 'commander';
+import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
 import { defaultCtx, type Ctx } from './core/context.js';
+import type { SpecType } from './core/spec-file.js';
 import { DnwError } from './core/errors.js';
 import { packageVersion } from './core/version.js';
 
@@ -12,6 +14,28 @@ function buildProgram(ctx: Ctx): Command {
     .allowExcessArguments(false)
     .exitOverride()
     .configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
+
+  const spec = program.command('spec').description('Create specs and move them through the lifecycle');
+  spec
+    .command('new <title>')
+    .description('Create a draft spec')
+    .addOption(new Option('--type <type>', 'spec type').choices(['api', 'ui']).makeOptionMandatory())
+    .option('--id <id>', 'add the other half of an existing spec pair')
+    .action(async (title: string, o: { type: SpecType; id?: string }) => {
+      await specNew(ctx, title, o);
+    });
+  spec.command('review <ref>').description('draft → review').action((ref: string) => specReview(ctx, ref));
+  spec.command('activate <ref>').description('review → active (human only)').action((ref: string) => specActivate(ctx, ref));
+  spec.command('done <ref>').description('active → done').action((ref: string) => specDone(ctx, ref));
+  spec
+    .command('supersede <ref>')
+    .description('mark a spec as replaced by another')
+    .requiredOption('--by <ref>', 'the replacing spec')
+    .action((ref: string, o: { by: string }) => specSupersede(ctx, ref, o.by));
+
+  for (const cmd of [program, ...program.commands, ...spec.commands]) {
+    cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
+  }
   return program;
 }
 
