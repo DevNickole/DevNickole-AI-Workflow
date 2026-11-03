@@ -1,5 +1,6 @@
 import { Command, CommanderError, Option } from 'commander';
 import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
+import { status } from './commands/status.js';
 import { taskDone, taskRed, taskStart } from './commands/task.js';
 import { defaultCtx, type Ctx } from './core/context.js';
 import type { SpecType } from './core/spec-file.js';
@@ -47,6 +48,11 @@ function buildProgram(ctx: Ctx): Command {
     .command('done <ref> <taskId>')
     .description("task test + full suite must pass; in progress → done")
     .action((ref: string, id: string) => taskDone(ctx, ref, id));
+
+  program
+    .command('status')
+    .description('List specs by status with the next allowed command')
+    .action(() => status(ctx));
 
   for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands]) {
     cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
