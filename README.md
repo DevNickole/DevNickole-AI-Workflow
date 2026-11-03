@@ -34,7 +34,7 @@ npm i -g github:DevNickole/devNickoleWorkflow#v0.1.0
 dnw init
 ```
 
-npm builds dnw during the install, so the first install takes a few seconds longer. `dnw` warns when its version
+The built CLI is committed in `dist/`, so installing needs no build step. `dnw` warns when its version
 differs from the one the project was set up with.
 
 `dnw init` asks for:
@@ -135,7 +135,7 @@ A release is a git tag on `main`. Colleagues install tags, so nothing reaches th
 
 1. Add a `## x.y.z` section to `CHANGELOG.md`.
 2. If the spec format changed, add a migration in `src/migrations/index.ts`.
-3. Run the tests, bump the version (this commits and creates the `vx.y.z` tag), and push with the tag:
+3. Bump the version. This runs the tests, rebuilds `dist/`, commits, and creates the `vx.y.z` tag. Then push with the tag:
 
 ```bash
 npm test
@@ -160,3 +160,6 @@ npm install
 ```bash
 npm test
 ```
+
+`dist/` is committed because colleagues install from GitHub without a build step. `npm test` rebuilds it, and
+`npm version` rebuilds it into every release, so commit it along with your source changes.
