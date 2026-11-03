@@ -11,13 +11,13 @@ workflow stays the same whichever AI coding tool each teammate uses: Claude Code
 ## Install
 
 dnw installs straight from GitHub; it is not on the npm registry. You need Node 20+ and git.
-Pin a release tag (`#v0.1.0`) so the whole team runs the same version. See
+Pin a release tag (`v0.1.1`) so the whole team runs the same version. See
 [releases](https://github.com/DevNickole/DevNickole-AI-Workflow/tags) for the latest tag.
 
 Node projects (saved in `package.json`, so teammates get it with `npm install`):
 
 ```bash
-npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.1.0
+npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.1.1
 ```
 
 ```bash
@@ -27,12 +27,15 @@ npx dnw init
 Any other project (Flutter, Go, Python, ...), installed once per machine:
 
 ```bash
-npm i -g github:DevNickole/DevNickole-AI-Workflow#v0.1.0
+npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v0.1.1.tar.gz
 ```
 
 ```bash
 dnw init
 ```
+
+Global installs use the tag's `.tar.gz` link rather than `github:...`: npm 11 links a global git install to a
+temporary clone that it then deletes, leaving a `dnw` that cannot start.
 
 The built CLI is committed in `dist/`, so installing needs no build step. `dnw` warns when its version
 differs from the one the project was set up with.
@@ -119,7 +122,7 @@ npx dnw upgrade
 Other projects:
 
 ```bash
-npm i -g github:DevNickole/DevNickole-AI-Workflow#v0.2.0
+npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v0.2.0.tar.gz
 ```
 
 ```bash

@@ -21,7 +21,15 @@ export function installSource(): string {
   return m ? `github:${m[1]}` : 'dev-nickole-workflow';
 }
 
-/** Install command matching how a project runs dnw: a dev dependency for npx, otherwise global. */
-export function installCommand(dnwCommand: string): string {
-  return `npm i ${dnwCommand.startsWith('npx') ? '-D' : '-g'} ${installSource()}`;
+/**
+ * Install command for a release, matching how a project runs dnw: a dev dependency for npx, otherwise global.
+ * Global installs use the tag's tarball: npm 11 links a global git install to a temp clone it then deletes.
+ */
+export function installCommand(dnwCommand: string, version: string): string {
+  const source = installSource();
+  if (dnwCommand.startsWith('npx')) return `npm i -D ${source}#v${version}`;
+  const repo = source.replace(/^github:/, '');
+  return source.startsWith('github:')
+    ? `npm i -g https://github.com/${repo}/archive/refs/tags/v${version}.tar.gz`
+    : `npm i -g ${source}@${version}`;
 }

@@ -19,7 +19,7 @@ export async function upgrade(ctx, opts) {
     const from = cfg.toolVersion;
     const to = packageVersion();
     if (semver.gt(from, to)) {
-        throw new DnwError(`Project uses dnw ${from}, newer than installed ${to}`, installCommand(dnwCommand(cfg)));
+        throw new DnwError(`Project uses dnw ${from}, newer than installed ${to}`, installCommand(dnwCommand(cfg), from));
     }
     // managed files are refreshed even when versions match, e.g. after fixing a file dnw could not update
     const result = writeManagedFiles(root, adapterFiles(cfg), readManifest(root), to);

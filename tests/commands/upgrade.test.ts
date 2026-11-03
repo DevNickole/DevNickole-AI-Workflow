@@ -93,7 +93,9 @@ test('project newer than installed is rejected', async () => {
   const root = await project();
   setVersion(root, '9.0.0');
   await expect(upgrade(testCtx({ cwd: root }), { migrations: [], changelog: '' })).rejects.toThrow(
-    expect.objectContaining({ next: 'npm i -g github:DevNickole/DevNickole-AI-Workflow' }),
+    expect.objectContaining({
+      next: 'npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v9.0.0.tar.gz',
+    }),
   );
 });
 
