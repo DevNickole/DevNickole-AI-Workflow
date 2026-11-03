@@ -151,7 +151,8 @@ spec new -> draft -> review -> active -> (tasks, one at a time, SDD+TDD) -> done
 | `dnw task done <ref> <taskId>` | `[~]` → `[x]` | Red evidence recorded for this task; the task's test **passes**; the full test command passes. Records evidence. |
 | `dnw spec done <ref>` | `active` → `done` | All tasks `[x]`. |
 | `dnw spec supersede <ref> --by <ref>` | any → `superseded` | Target spec exists and has the same type. Sets `supersededBy`. |
-| `dnw status` | — | Lists specs grouped by status, the in-progress task per active spec, and the next allowed command. |
+| `dnw status` | — | Lists docs that are still unfilled templates, then specs grouped by status, the in-progress task per active spec, and the next allowed command. |
+| `dnw docs add [architecture\|products\|design-system]` | — | Writes the fillable template for each mapped doc location that does not exist yet (all missing ones when no kind is given). Never overwrites or writes into an existing file or folder; naming an existing one is an error. |
 | `dnw upgrade` | — | See section 6. |
 
 ### Running a single task's test
@@ -203,7 +204,7 @@ Interactive flow:
    Defaults when nothing is found: `docs/architecture/`, `docs/products/`, `docs/design-system/`. `docs/specs/` is always dnw's.
 5. **AI tools** (multi-select), preselected from what exists: `CLAUDE.md`/`.claude/` → Claude, `AGENTS.md` → Codex, `.agents/`/`.agent/`/`GEMINI.md` → Antigravity.
 6. **Install superpowers?** (default yes; skipped when no AI tools selected). See section 6.1.
-7. Create only missing doc locations (folder + `README.md`, or the named Markdown file) and `docs/specs/`. Existing files are never overwritten.
+7. Create only missing doc locations and `docs/specs/`. Existing files are never overwritten. A new architecture, products or design-system location gets its fillable template (§5.1) as `README.md` in a folder, or as the named Markdown file.
 8. `config.command`: `npx --no-install dnw` when `package.json` lists `dev-nickole-workflow`, else `dnw`. Generated instructions use it.
 9. Write `.dnw/config.json`, generate adapter files, write `.dnw/manifest.json`.
 10. Run superpowers setup steps (section 6.1).
@@ -213,6 +214,16 @@ Non-interactive: `dnw init --yes [--stack nextjs] [--ai claude,codex] [--no-supe
 Configs without `docs` or `command` (older versions) fall back to the default folders and `npx --no-install dnw`.
 
 Re-running `init` on an initialized project exits with a message pointing to `dnw upgrade`.
+
+### 5.1 Docs templates
+
+`templates/docs-readme/{architecture,products,design-system}.md` are fillable templates. Each `## ` section holds exactly one `<!-- fill: ... -->` hint; a doc that still contains such hints is an unfilled template. Ordinary HTML comments are not counted, so a team's own docs are never flagged.
+
+- Architecture: Overview, Tech Stack, System Diagram (Mermaid starter), Modules, Data Flow, Integrations, Key Decisions, Constraints, Conventions.
+- Products: Vision, Users, Problems, Goals and Success Metrics, Scope, Features, Milestones, Glossary.
+- Design System: Principles, Tokens, Components, Patterns, Accessibility, Do and Don't, Where It Lives in Code.
+
+The AI instructions tell the agent to help the user fill unfilled templates, one section at a time, before drafting specs. Claude Code also gets `/dnw-docs-add`.
 
 ## 6. AI adapters
 

@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { adapterFiles, superpowersSteps } from '../adapters/index.js';
 import {
   configPath,
@@ -7,16 +7,15 @@ import {
   writeConfig,
   type AiTool,
   type DnwConfig,
-  type DocKey,
   type DocsPaths,
   type StackId,
 } from '../core/config.js';
 import { findRoot, type Ctx } from '../core/context.js';
 import { detectAiTools, detectDnwCommand, detectDocs } from '../core/detect.js';
+import { createDoc, DOC_KINDS } from '../core/docs.js';
 import { DnwError } from '../core/errors.js';
 import { managedWarnings, writeManagedFiles, writeManifest } from '../core/manifest.js';
 import { detectStack, detectTestSetup } from '../core/stack.js';
-import { readTemplate } from '../core/templates.js';
 import { packageVersion } from '../core/version.js';
 
 export interface InitOptions {
@@ -45,32 +44,13 @@ const TOOLS: { value: AiTool; name: string }[] = [
   { value: 'codex', name: 'ChatGPT (Codex)' },
 ];
 
-const DOCS: { key: DocKey; label: string; template: string }[] = [
-  { key: 'architecture', label: 'Architecture docs', template: 'architecture' },
-  { key: 'products', label: 'Product docs', template: 'products' },
-  { key: 'designSystem', label: 'Design system', template: 'design-system' },
-];
+const DOCS = DOC_KINDS;
 
 const SPECS_DIR = 'docs/specs/';
 
 /** Forward slashes; folders keep their trailing "/". */
 function normalizePath(p: string): string {
   return p.trim().split('\\').join('/').replace(/^\.\//, '');
-}
-
-/** Creates a doc location that does not exist yet: a folder with a README, or a single Markdown file. */
-function createDoc(root: string, path: string, template: string): boolean {
-  const abs = join(root, path);
-  if (existsSync(abs)) return false;
-  const content = readTemplate(`docs-readme/${template}.md`);
-  if (path.endsWith('/')) {
-    mkdirSync(abs, { recursive: true });
-    writeFileSync(join(abs, 'README.md'), content);
-  } else {
-    mkdirSync(dirname(abs), { recursive: true });
-    writeFileSync(abs, content);
-  }
-  return true;
 }
 
 function enclosingProject(root: string): string | null {
@@ -123,7 +103,7 @@ export async function init(ctx: Ctx, opts: InitOptions): Promise<void> {
     (opts.superpowers ?? (opts.yes ? true : await ctx.confirm('Install superpowers (brainstorming, TDD, debugging skills)?')));
 
   const created: string[] = [];
-  for (const d of DOCS) if (createDoc(root, docs[d.key], d.template)) created.push(docs[d.key]);
+  for (const d of DOCS) if (createDoc(root, docs[d.key], d.kind)) created.push(docs[d.key]);
   if (createDoc(root, SPECS_DIR, 'specs')) created.push(SPECS_DIR);
 
   const cfg: DnwConfig = {

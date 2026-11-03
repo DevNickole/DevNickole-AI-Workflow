@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Fillable templates for architecture, products and design-system docs. `dnw init` writes them for new doc locations.
+- `dnw docs add [kind]` adds templates for missing docs in existing projects; never overwrites.
+- `dnw status` lists docs that are still unfilled templates; AI instructions ask the agent to fill them with you before drafting specs.
+- Claude Code: `/dnw-docs-add`.
+
 ## 0.2.0
 
 - Laravel support: detected from `artisan` or `laravel/framework` (before the Vite `package.json`); tests run with `php artisan test` (Pest or PHPUnit).

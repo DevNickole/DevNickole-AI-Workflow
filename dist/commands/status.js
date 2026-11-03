@@ -1,4 +1,6 @@
+import { readConfig } from '../core/config.js';
 import { findRoot } from '../core/context.js';
+import { unfilledDocs } from '../core/docs.js';
 import { tasksWithoutEvidence } from '../core/lifecycle.js';
 import { readRuns, runKey } from '../core/runs.js';
 import { formatRef, SPEC_STATUSES } from '../core/spec-file.js';
@@ -32,6 +34,9 @@ function describe(doc, runs) {
 }
 export async function status(ctx) {
     const root = findRoot(ctx.cwd);
+    for (const d of unfilledDocs(root, readConfig(root))) {
+        ctx.out(`⚠ ${d.path} is still a template (${d.remaining} sections to fill)\n`);
+    }
     const specs = listSpecs(root);
     if (specs.length === 0) {
         ctx.out('No specs yet. Next: dnw spec new "<title>" --type api\n');

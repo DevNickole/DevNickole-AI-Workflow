@@ -12,6 +12,10 @@ Run dnw commands as `{{dnw}} <command>`. Never use plain `npx dnw`, which could 
 
 Read the relevant docs before drafting a spec or writing code.
 
+If one of these docs still contains `<!-- fill: ... -->` hints, it is an unfilled template. Before drafting specs,
+help the user fill it in: ask about each section, write their answers into it, and delete each hint once its section is
+done. If a doc is missing, `dnw docs add` creates its template. `dnw status` lists the docs that still need filling.
+
 ## Specs
 
 - Two types: `api` (endpoints, data models, errors) and `ui` (screens, components, states, flows).
@@ -32,6 +36,7 @@ Read the relevant docs before drafting a spec or writing code.
 - `dnw spec review <ref>`: draft → review, once every section and task is filled in.
 - `dnw spec done <ref>`: after every task is done.
 - `dnw spec supersede <ref> --by <ref>`: mark a spec as replaced.
+- `dnw docs add [architecture|products|design-system]`: add fillable templates for missing docs. Never overwrites.
 
 ## Per-task loop (SDD + TDD)
 

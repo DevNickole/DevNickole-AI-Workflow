@@ -1,4 +1,5 @@
 import { Command, CommanderError, Option } from 'commander';
+import { docsAdd } from './commands/docs.js';
 import { init } from './commands/init.js';
 import { upgrade } from './commands/upgrade.js';
 import { readConfig, type AiTool, type StackId } from './core/config.js';
@@ -7,6 +8,7 @@ import { status } from './commands/status.js';
 import { taskDone, taskRed, taskStart } from './commands/task.js';
 import { defaultCtx, findRoot, type Ctx } from './core/context.js';
 import type { SpecType } from './core/spec-file.js';
+import type { DocKind } from './core/docs.js';
 import { DnwError } from './core/errors.js';
 import { packageVersion } from './core/version.js';
 
@@ -93,7 +95,13 @@ function buildProgram(ctx: Ctx): Command {
     .option('-y, --yes', 'apply migrations without asking')
     .action((o: { yes?: boolean }) => upgrade(ctx, { yes: o.yes }));
 
-  for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands]) {
+  const docs = program.command('docs').description('Fillable templates for architecture, product and design-system docs');
+  docs
+    .command('add [kind]')
+    .description('add templates for missing docs (architecture, products, design-system); never overwrites')
+    .action((kind?: string) => docsAdd(ctx, kind as DocKind | undefined));
+
+  for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands, ...docs.commands]) {
     cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
   }
   return program;

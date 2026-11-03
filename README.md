@@ -78,6 +78,24 @@ AGENTS.md                           ChatGPT/Codex
 Run `dnw init` from the project root. Inside a folder that already belongs to a dnw project, it refuses and names that
 project's root.
 
+## Project docs templates
+
+Specs are only as good as the context behind them. dnw ships fillable templates for the three context docs:
+
+| Template | Sections |
+|---|---|
+| Architecture | Overview, Tech Stack, System Diagram (Mermaid), Modules, Data Flow, Integrations, Key Decisions, Constraints, Conventions |
+| Products | Vision, Users, Problems, Goals and Success Metrics, Scope, Features, Milestones, Glossary |
+| Design System | Principles, Tokens (color, typography, spacing), Components, Patterns, Accessibility, Do and Don't, Where It Lives in Code |
+
+- **New projects:** `dnw init` writes them wherever it creates a doc location.
+- **Existing projects:** `dnw docs add` adds templates for any doc that is missing (`dnw docs add products` for one).
+  It never overwrites or writes into anything that already exists.
+- **Filling them in:** each section has a `<!-- fill: ... -->` hint. Replace it with real content and delete the hint,
+  or ask your AI: the generated instructions tell it to fill templates with you, one section at a time, before
+  drafting specs. In Claude Code, `/dnw-docs-add` does both.
+- **Reminder:** `dnw status` lists docs that still have hints, e.g. `⚠ docs/products/README.md is still a template (8 sections to fill)`.
+
 ## Lifecycle
 
 ```
@@ -95,7 +113,8 @@ spec new -> draft -> review -> active -> (tasks, one at a time, SDD + TDD) -> do
 | `dnw task done <ref> <taskId>` | The task's test and the full suite must **pass**. |
 | `dnw spec done <ref>` | active → done once all tasks are done. |
 | `dnw spec supersede <ref> --by <ref>` | Mark a spec as replaced. |
-| `dnw status` | Every spec with the next allowed command. Works from any subfolder. |
+| `dnw status` | Every spec with the next allowed command, plus docs that are still templates. Works from any subfolder. |
+| `dnw docs add [kind]` | Add fillable templates for missing architecture, products or design-system docs. |
 | `dnw upgrade` | Refresh managed files and run migrations after updating dnw. |
 
 A `<ref>` is `<id>.<type>`, e.g. `0001.api`.

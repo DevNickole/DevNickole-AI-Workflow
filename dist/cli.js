@@ -1,4 +1,5 @@
 import { Command, CommanderError, Option } from 'commander';
+import { docsAdd } from './commands/docs.js';
 import { init } from './commands/init.js';
 import { upgrade } from './commands/upgrade.js';
 import { readConfig } from './core/config.js';
@@ -85,7 +86,12 @@ function buildProgram(ctx) {
         .description('Update managed files and run migrations after installing a newer dnw')
         .option('-y, --yes', 'apply migrations without asking')
         .action((o) => upgrade(ctx, { yes: o.yes }));
-    for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands]) {
+    const docs = program.command('docs').description('Fillable templates for architecture, product and design-system docs');
+    docs
+        .command('add [kind]')
+        .description('add templates for missing docs (architecture, products, design-system); never overwrites')
+        .action((kind) => docsAdd(ctx, kind));
+    for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands, ...docs.commands]) {
         cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
     }
     return program;

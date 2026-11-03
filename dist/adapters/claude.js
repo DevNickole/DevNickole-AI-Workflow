@@ -37,6 +37,12 @@ const COMMANDS = [
         run: 'npx --no-install dnw status',
         then: 'Follow the Next: command for the spec the user is working on.',
     },
+    {
+        name: 'docs-add',
+        description: 'Add fillable architecture, products and design-system templates. Args: [kind]',
+        run: 'npx --no-install dnw docs add $ARGUMENTS',
+        then: 'Then help the user fill each template that still has <!-- fill: --> hints: ask about one section at a time, write the answers in, and delete each hint once its section is done.',
+    },
 ];
 export function claudeFiles(cfg) {
     const files = [{ path: 'CLAUDE.md', content: renderInstructions(cfg), mode: 'marker' }];
