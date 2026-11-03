@@ -1,4 +1,6 @@
 import { Command, CommanderError, Option } from 'commander';
+import { init } from './commands/init.js';
+import type { AiTool, StackId } from './core/config.js';
 import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
 import { status } from './commands/status.js';
 import { taskDone, taskRed, taskStart } from './commands/task.js';
@@ -6,6 +8,16 @@ import { defaultCtx, type Ctx } from './core/context.js';
 import type { SpecType } from './core/spec-file.js';
 import { DnwError } from './core/errors.js';
 import { packageVersion } from './core/version.js';
+
+const AI_TOOLS: AiTool[] = ['claude', 'codex', 'antigravity'];
+
+function parseTools(list: string): AiTool[] {
+  if (list.trim() === 'none') return [];
+  const tools = list.split(',').map((t) => t.trim()).filter(Boolean);
+  const bad = tools.filter((t) => !AI_TOOLS.includes(t as AiTool));
+  if (bad.length) throw new DnwError(`Unknown AI tool: ${bad.join(', ')} (use ${AI_TOOLS.join(', ')} or none)`);
+  return tools as AiTool[];
+}
 
 function buildProgram(ctx: Ctx): Command {
   const program = new Command();
@@ -16,6 +28,26 @@ function buildProgram(ctx: Ctx): Command {
     .allowExcessArguments(false)
     .exitOverride()
     .configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
+
+  program
+    .command('init')
+    .description('Install the dnw workflow into this project')
+    .option('-y, --yes', 'accept recommendations without prompting')
+    .addOption(new Option('--stack <stack>', 'tech stack').choices(['nextjs', 'node-api', 'go', 'python', 'other']))
+    .option('--ai <tools>', 'comma-separated: claude,codex,antigravity or none')
+    .option('--no-superpowers', 'do not set up superpowers')
+    .option('--test-command <cmd>', 'full test suite command')
+    .option('--test-file-command <cmd>', 'single test command; {file} and {dir} placeholders')
+    .action(async (o: Record<string, unknown>, cmd: Command) => {
+      await init(ctx, {
+        yes: Boolean(o.yes),
+        stack: o.stack as StackId | undefined,
+        ai: o.ai === undefined ? undefined : parseTools(String(o.ai)),
+        superpowers: cmd.getOptionValueSource('superpowers') === 'cli' ? Boolean(o.superpowers) : undefined,
+        testCommand: o.testCommand as string | undefined,
+        testFileCommand: o.testFileCommand as string | undefined,
+      });
+    });
 
   const spec = program.command('spec').description('Create specs and move them through the lifecycle');
   spec

@@ -20,9 +20,15 @@ export function tmpProject(): string {
 
 export type TestCtx = Ctx & { outText(): string; errText(): string };
 
-export function testCtx(over: Partial<Ctx> = {}): TestCtx {
+/** `answers` are consumed in order by select / checkbox / input prompts. */
+export function testCtx(over: Partial<Ctx> & { answers?: unknown[] } = {}): TestCtx {
   const out: string[] = [];
   const err: string[] = [];
+  const { answers = [], ...rest } = over;
+  const next = async <T>(message: string): Promise<T> => {
+    if (!answers.length) throw new Error(`no scripted answer for prompt: ${message}`);
+    return answers.shift() as T;
+  };
   return {
     cwd: process.cwd(),
     isTTY: true,
@@ -34,7 +40,10 @@ export function testCtx(over: Partial<Ctx> = {}): TestCtx {
     run: () => {
       throw new Error('no run stub');
     },
-    ...over,
+    select: (message) => next(message),
+    checkbox: (message) => next(message),
+    input: (message) => next(message),
+    ...rest,
     outText: () => out.join(''),
     errText: () => err.join(''),
   };

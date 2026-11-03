@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { confirm } from '@inquirer/prompts';
+import { checkbox, confirm, input, select } from '@inquirer/prompts';
 import { DnwError } from './errors.js';
 
 export interface RunResult {
@@ -18,6 +18,14 @@ export interface Ctx {
   gitUser(): string;
   now(): string;
   run(cmd: string, cwd: string): RunResult;
+  select<T extends string>(message: string, choices: Choice<T>[], def?: T): Promise<T>;
+  checkbox<T extends string>(message: string, choices: Choice<T>[]): Promise<T[]>;
+  input(message: string, def: string): Promise<string>;
+}
+
+export interface Choice<T extends string> {
+  value: T;
+  name: string;
 }
 
 export function defaultCtx(): Ctx {
@@ -36,6 +44,9 @@ export function defaultCtx(): Ctx {
       const r = spawnSync(cmd, { cwd, shell: true, encoding: 'utf8' });
       return { exitCode: r.status ?? 1, output: `${r.stdout ?? ''}${r.stderr ?? ''}` };
     },
+    select: (message, choices, def) => select({ message, choices, default: def }),
+    checkbox: (message, choices) => checkbox({ message, choices }),
+    input: (message, def) => input({ message, default: def }),
   };
 }
 
