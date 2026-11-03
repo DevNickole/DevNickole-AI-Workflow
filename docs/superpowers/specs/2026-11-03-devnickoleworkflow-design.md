@@ -83,12 +83,12 @@ docs/
     0001-user-login.ui.md
 CLAUDE.md, .claude/commands/*.md     if Claude Code selected
 AGENTS.md                            if ChatGPT/Codex selected
-.agent/rules/dnw.md, .agent/workflows/*.md   if Antigravity selected
+.agents/rules/dnw.md                 if Antigravity selected
 ```
 
 Ownership:
 
-- **Managed** (upgrade may replace): `.dnw/manifest.json`, AI instruction marker blocks, `.claude/commands/*`, `.agent/*`, the `enabledPlugins["superpowers@claude-plugins-official"]` key in `.claude/settings.json` (other keys untouched).
+- **Managed** (upgrade may replace): `.dnw/manifest.json`, AI instruction marker blocks, `.claude/commands/*`, `.agents/rules/dnw.md`, the `enabledPlugins["superpowers@claude-plugins-official"]` key in `.claude/settings.json` (other keys untouched).
 - **Project-owned** (upgrade never replaces; only confirmed migrations may edit): everything in `docs/`, `.dnw/config.json`, `.dnw/runs.json`.
 
 ## 3. Spec files
@@ -211,7 +211,7 @@ Adapter output:
 
 - **Claude Code:** marker block in `CLAUDE.md`; slash commands in `.claude/commands/` (`spec-new.md`, `spec-review.md`, `task-start.md`, `task-red.md`, `task-done.md`, `status.md`).
 - **ChatGPT/Codex:** marker block in `AGENTS.md`.
-- **Antigravity:** `.agent/rules/dnw.md` and `.agent/workflows/*.md`. Exact file conventions are verified against current Antigravity docs during implementation.
+- **Antigravity:** `.agents/rules/dnw.md` with frontmatter `trigger: always_on` and `description` (per antigravity.google/docs/rules; `.agent/` is legacy and workflows are being migrated to skills, so none are generated).
 
 Existing `CLAUDE.md` / `AGENTS.md` content is preserved: dnw writes only between `<!-- dnw:start -->` and `<!-- dnw:end -->`.
 
