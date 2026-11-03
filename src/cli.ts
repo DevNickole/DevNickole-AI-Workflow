@@ -1,10 +1,11 @@
 import { Command, CommanderError, Option } from 'commander';
 import { init } from './commands/init.js';
-import type { AiTool, StackId } from './core/config.js';
+import { upgrade } from './commands/upgrade.js';
+import { readConfig, type AiTool, type StackId } from './core/config.js';
 import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
 import { status } from './commands/status.js';
 import { taskDone, taskRed, taskStart } from './commands/task.js';
-import { defaultCtx, type Ctx } from './core/context.js';
+import { defaultCtx, findRoot, type Ctx } from './core/context.js';
 import type { SpecType } from './core/spec-file.js';
 import { DnwError } from './core/errors.js';
 import { packageVersion } from './core/version.js';
@@ -86,14 +87,38 @@ function buildProgram(ctx: Ctx): Command {
     .description('List specs by status with the next allowed command')
     .action(() => status(ctx));
 
+  program
+    .command('upgrade')
+    .description('Update managed files and run migrations after installing a newer dnw')
+    .option('-y, --yes', 'apply migrations without asking')
+    .action((o: { yes?: boolean }) => upgrade(ctx, { yes: o.yes }));
+
   for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands]) {
     cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
   }
   return program;
 }
 
+const NO_VERSION_CHECK = new Set(['init', 'upgrade', '--version', '-V', '--help', '-h', 'help']);
+
+/** Warns, without failing, when the project was set up with a different dnw version. */
+function warnOnVersionMismatch(argv: string[], ctx: Ctx): void {
+  const command = argv[2];
+  if (command === undefined || NO_VERSION_CHECK.has(command)) return;
+  try {
+    const projectVersion = readConfig(findRoot(ctx.cwd)).toolVersion;
+    const installed = packageVersion();
+    if (projectVersion !== installed) {
+      ctx.err(`⚠ This project uses dnw ${projectVersion}; installed is ${installed}. Run: dnw upgrade\n`);
+    }
+  } catch {
+    // not in a dnw project: the command itself reports that
+  }
+}
+
 export async function main(argv: string[], ctx: Ctx = defaultCtx()): Promise<number> {
   const program = buildProgram(ctx);
+  warnOnVersionMismatch(argv, ctx);
   try {
     await program.parseAsync(argv);
     return 0;
