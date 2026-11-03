@@ -2,6 +2,7 @@
   "name": "dev-nickole-workflow",
   "version": "0.1.0",
   "description": "Spec-driven + TDD workflow CLI that works the same across AI coding tools",
+  "author": "DevNickole",
   "type": "module",
   "bin": {
     "dnw": "dist/bin.js"
