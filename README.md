@@ -11,13 +11,13 @@ workflow stays the same whichever AI coding tool each teammate uses: Claude Code
 ## Install
 
 dnw installs straight from GitHub; it is not on the npm registry. You need Node 20+ and git.
-Pin a release tag (`v0.2.0`) so the whole team runs the same version. See
+Pin a release tag (`v0.3.0`) so the whole team runs the same version. See
 [releases](https://github.com/DevNickole/DevNickole-AI-Workflow/tags) for the latest tag.
 
 Node projects (saved in `package.json`, so teammates get it with `npm install`):
 
 ```bash
-npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.2.0
+npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.3.0
 ```
 
 ```bash
@@ -27,7 +27,7 @@ npx dnw init
 Any other project (Flutter, Go, Python, plain PHP, ...), installed once per machine. Laravel apps already have a `package.json`, so use the Node command above:
 
 ```bash
-npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v0.2.0.tar.gz
+npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v0.3.0.tar.gz
 ```
 
 ```bash
@@ -131,7 +131,7 @@ dnw task start 0001.api T1   ->  write the test  ->  dnw task red 0001.api T1
 Install the newer tag the same way you installed dnw, then run `dnw upgrade` in the project. Node projects:
 
 ```bash
-npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.3.0
+npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.4.0
 ```
 
 ```bash
@@ -141,7 +141,7 @@ npx dnw upgrade
 Other projects:
 
 ```bash
-npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v0.3.0.tar.gz
+npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v0.4.0.tar.gz
 ```
 
 ```bash
@@ -171,7 +171,7 @@ npm version minor
 git push --follow-tags
 ```
 
-4. Tell the team the new tag, e.g. `#v0.3.0`.
+4. Tell the team the new tag, e.g. `#v0.4.0`.
 
 ## Development
 
