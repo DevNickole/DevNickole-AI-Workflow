@@ -12,6 +12,10 @@ const DOC_CANDIDATES = {
         'src/theme/',
         'src/design-system/',
         'src/components/ui/',
+        // Laravel: React/Vue starter kits, Breeze-style Inertia, then Blade components
+        'resources/js/components/',
+        'resources/js/Components/',
+        'resources/views/components/',
     ],
 };
 function exists(root, candidate) {

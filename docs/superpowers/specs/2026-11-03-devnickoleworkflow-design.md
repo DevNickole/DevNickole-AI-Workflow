@@ -179,7 +179,7 @@ Interactive flow:
 `init` must work in new **and existing** projects: it adopts what is already there and changes nothing it does not own.
 
 0. Refuse when the folder is inside another dnw project (a parent has `.dnw/config.json`); name that root.
-1. Detect stack: `pubspec.yaml` → Flutter (checked first; Flutter repos may carry a tooling `package.json`), `package.json` (Next.js / React vs Node API), `go.mod`, `pyproject.toml`/`requirements.txt`; preselect the guess.
+1. Detect stack: `pubspec.yaml` → Flutter; `artisan` or `laravel/framework` in `composer.json` → Laravel; other `composer.json` → PHP (all checked before `package.json`: Flutter repos may carry a tooling `package.json`, and every Laravel app ships one for Vite that would read as Next.js); then `package.json` (Next.js / React vs Node API), `go.mod`, `pyproject.toml`/`requirements.txt`; preselect the guess.
 2. **Stack:** Next.js/React, Node API, Flutter/Dart, Go, Python, Other.
 3. **Test commands:** use the project's existing setup when it has one, else recommend; user accepts or edits `testCommand` and `testFileCommand`.
 
@@ -187,6 +187,8 @@ Interactive flow:
    |---|---|---|---|
    | Next.js/React | Vitest + Playwright | `<pm> test` | `npx vitest run {file}` |
    | Node API | Vitest | `<pm> test` | `npx vitest run {file}` |
+   | Laravel | PHPUnit (Pest when `pestphp/pest` is installed) | `php artisan test` | `php artisan test {file}` |
+   | PHP | PHPUnit, or Pest | `php vendor/bin/phpunit` / `php vendor/bin/pest` | same + ` {file}` |
    | Flutter | flutter_test | `flutter test` | `flutter test {file}` |
    | Go | go test | `go test ./...` | `go test ./{dir}` |
    | Python | pytest | `pytest` | `pytest {file}` |
@@ -196,7 +198,7 @@ Interactive flow:
 4. **Docs locations** (`config.docs`): architecture, products, design system. Each is a file or a folder ending in `/`. Detected candidates, most specific first:
    - architecture: `docs/architecture/`, `docs/architecture.md`, `docs/ARCHITECTURE.md`, `ARCHITECTURE.md`
    - products: `docs/products/`, `docs/product/`, `docs/product.md`, `docs/mvp.md`, `docs/prd.md`, `docs/PRD.md`, `PRD.md`
-   - design system: `docs/design-system/`, `docs/design-system.md`, `lib/theme/`, `src/theme/`, `src/design-system/`, `src/components/ui/`
+   - design system: `docs/design-system/`, `docs/design-system.md`, `lib/theme/`, `src/theme/`, `src/design-system/`, `src/components/ui/`, `resources/js/components/`, `resources/js/Components/`, `resources/views/components/`
 
    Defaults when nothing is found: `docs/architecture/`, `docs/products/`, `docs/design-system/`. `docs/specs/` is always dnw's.
 5. **AI tools** (multi-select), preselected from what exists: `CLAUDE.md`/`.claude/` → Claude, `AGENTS.md` → Codex, `.agents/`/`.agent/`/`GEMINI.md` → Antigravity.

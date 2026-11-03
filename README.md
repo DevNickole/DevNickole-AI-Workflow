@@ -24,7 +24,7 @@ npm i -D github:DevNickole/DevNickole-AI-Workflow#v0.1.1
 npx dnw init
 ```
 
-Any other project (Flutter, Go, Python, ...), installed once per machine:
+Any other project (Flutter, Go, Python, plain PHP, ...), installed once per machine. Laravel apps already have a `package.json`, so use the Node command above:
 
 ```bash
 npm i -g https://github.com/DevNickole/DevNickole-AI-Workflow/archive/refs/tags/v0.1.1.tar.gz
@@ -42,7 +42,7 @@ differs from the one the project was set up with.
 
 `dnw init` asks for:
 
-1. **Tech stack**: Next.js/React, Node API, Flutter/Dart, Go, Python, Other. It suggests test commands, using the project's existing test setup when it has one.
+1. **Tech stack**: Next.js/React, Node API, Laravel, PHP, Flutter/Dart, Go, Python, Other. It suggests test commands, using the project's existing test setup when it has one.
 2. **Docs locations**: architecture, product and design-system docs. Existing files are suggested.
 3. **AI tools** (multi-select): Claude Code, Antigravity, ChatGPT/Codex, none. Tools the project already uses are preselected.
 4. **Superpowers**: on by default when an AI tool is selected.
@@ -68,8 +68,8 @@ AGENTS.md                           ChatGPT/Codex
 
 | Already in the project | What dnw does |
 |---|---|
-| `docs/architecture.md`, `docs/mvp.md`, `lib/theme/`, ... | Maps them in `.dnw/config.json` and points the AI instructions at them. No duplicate folders. |
-| A test setup (Jest, Vitest, Mocha, `flutter test`, pnpm/yarn/bun) | Uses it instead of recommending a new one. |
+| `docs/architecture.md`, `docs/mvp.md`, `lib/theme/`, `resources/js/components/`, ... | Maps them in `.dnw/config.json` and points the AI instructions at them. No duplicate folders. |
+| A test setup (Jest, Vitest, Mocha, Pest, PHPUnit, `flutter test`, pnpm/yarn/bun) | Uses it instead of recommending a new one. |
 | `CLAUDE.md`, `AGENTS.md` | Keeps your content; dnw writes only between `<!-- dnw:start -->` and `<!-- dnw:end -->`. |
 | `.claude/commands/`, `.agents/skills/`, other docs | Untouched. dnw adds its own `dnw-*` commands and `.agents/rules/dnw.md`. |
 | `.claude/settings.json` | Adds one `enabledPlugins` key for superpowers and keeps every other setting. |

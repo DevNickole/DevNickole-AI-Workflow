@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DnwError } from './errors.js';
 
-export type StackId = 'nextjs' | 'node-api' | 'flutter' | 'go' | 'python' | 'other';
+export type StackId = 'nextjs' | 'node-api' | 'laravel' | 'php' | 'flutter' | 'go' | 'python' | 'other';
 export type AiTool = 'claude' | 'codex' | 'antigravity';
 export type DocKey = 'architecture' | 'products' | 'designSystem';
 

@@ -12,6 +12,8 @@ import { packageVersion } from '../core/version.js';
 const STACKS = [
     { value: 'nextjs', name: 'Next.js / React' },
     { value: 'node-api', name: 'Node API' },
+    { value: 'laravel', name: 'Laravel' },
+    { value: 'php', name: 'PHP (other)' },
     { value: 'flutter', name: 'Flutter / Dart' },
     { value: 'go', name: 'Go' },
     { value: 'python', name: 'Python' },

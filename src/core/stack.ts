@@ -11,6 +11,8 @@ export interface Recommendation {
 const RECOMMENDATIONS: Record<StackId, Recommendation> = {
   nextjs: { framework: 'Vitest + Playwright', testCommand: 'npm test', testFileCommand: 'npx vitest run {file}' },
   'node-api': { framework: 'Vitest', testCommand: 'npm test', testFileCommand: 'npx vitest run {file}' },
+  laravel: { framework: 'PHPUnit', testCommand: 'php artisan test', testFileCommand: 'php artisan test {file}' },
+  php: { framework: 'PHPUnit', testCommand: 'php vendor/bin/phpunit', testFileCommand: 'php vendor/bin/phpunit {file}' },
   flutter: { framework: 'flutter_test', testCommand: 'flutter test', testFileCommand: 'flutter test {file}' },
   go: { framework: 'go test', testCommand: 'go test ./...', testFileCommand: 'go test ./{dir}' },
   python: { framework: 'pytest', testCommand: 'pytest', testFileCommand: 'pytest {file}' },
@@ -39,9 +41,29 @@ export function readPackageJson(root: string): PackageJson | null {
   }
 }
 
+interface ComposerJson {
+  require?: Record<string, string>;
+  'require-dev'?: Record<string, string>;
+}
+
+function readComposerJson(root: string): ComposerJson | null {
+  const path = join(root, 'composer.json');
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) as ComposerJson;
+  } catch {
+    // unreadable composer.json still means a PHP project
+    return {};
+  }
+}
+
 export function detectStack(root: string): StackId {
-  // before package.json: Flutter repos often carry one for tooling such as `npx supabase`
+  // these come before package.json: Flutter repos often carry one for tooling such as `npx supabase`,
+  // and every Laravel app ships one for Vite (with React or Vue it would read as Next.js)
   if (existsSync(join(root, 'pubspec.yaml'))) return 'flutter';
+  const composer = readComposerJson(root);
+  if (existsSync(join(root, 'artisan')) || (composer?.require && 'laravel/framework' in composer.require)) return 'laravel';
+  if (composer) return 'php';
   const pkg = readPackageJson(root);
   if (pkg) {
     const deps = { ...pkg.dependencies, ...pkg.devDependencies };
@@ -67,6 +89,7 @@ const RUNNERS: { match: RegExp; framework: string; fileCommand: string }[] = [
 
 /** Test commands for this project: its existing setup when it has one, otherwise the stack's recommendation. */
 export function detectTestSetup(root: string, stack: StackId): Recommendation {
+  if (stack === 'laravel' || stack === 'php') return phpTestSetup(root, stack);
   if (stack !== 'nextjs' && stack !== 'node-api') return recommend(stack);
   const pm = packageManager(root);
   const script = readPackageJson(root)?.scripts?.test;
@@ -74,4 +97,15 @@ export function detectTestSetup(root: string, stack: StackId): Recommendation {
   const runner = RUNNERS.find((r) => r.match.test(script));
   if (!runner) return { framework: 'existing test script', testCommand: `${pm} test`, testFileCommand: `${pm} test -- {file}` };
   return { framework: `${runner.framework} (existing)`, testCommand: `${pm} test`, testFileCommand: runner.fileCommand };
+}
+
+/** Laravel runs Pest and PHPUnit alike through `php artisan test`; other PHP projects call the runner directly. */
+function phpTestSetup(root: string, stack: 'laravel' | 'php'): Recommendation {
+  const composer = readComposerJson(root);
+  const pest = Boolean(composer && 'pestphp/pest' in { ...composer.require, ...composer['require-dev'] });
+  const framework = pest ? 'Pest' : 'PHPUnit';
+  if (stack === 'laravel') return { ...recommend('laravel'), framework };
+  // `php vendor/bin/...` rather than `vendor/bin/...` so it also runs from cmd.exe on Windows
+  const bin = pest ? 'php vendor/bin/pest' : 'php vendor/bin/phpunit';
+  return { framework, testCommand: bin, testFileCommand: `${bin} {file}` };
 }

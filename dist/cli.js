@@ -31,7 +31,7 @@ function buildProgram(ctx) {
         .command('init')
         .description('Install the dnw workflow into this project')
         .option('-y, --yes', 'accept recommendations without prompting')
-        .addOption(new Option('--stack <stack>', 'tech stack').choices(['nextjs', 'node-api', 'flutter', 'go', 'python', 'other']))
+        .addOption(new Option('--stack <stack>', 'tech stack').choices(['nextjs', 'node-api', 'laravel', 'php', 'flutter', 'go', 'python', 'other']))
         .option('--ai <tools>', 'comma-separated: claude,codex,antigravity or none')
         .option('--no-superpowers', 'do not set up superpowers')
         .option('--test-command <cmd>', 'full test suite command')
