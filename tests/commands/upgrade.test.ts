@@ -47,7 +47,7 @@ test('keeps locally modified files and writes .new', async () => {
   const ctx = testCtx({ cwd: root });
   await upgrade(ctx, { yes: true, migrations: [], changelog: '' });
   expect(readFileSync(join(root, STATUS_CMD), 'utf8')).toBe('my edit');
-  expect(readFileSync(join(root, STATUS_CMD + '.new'), 'utf8')).toContain('npx --no-install dnw status');
+  expect(readFileSync(join(root, STATUS_CMD + '.new'), 'utf8')).toContain('Run `dnw status`');
   expect(ctx.outText()).toContain(`⚠ ${STATUS_CMD} was modified locally; new version written to ${STATUS_CMD}.new`);
 });
 

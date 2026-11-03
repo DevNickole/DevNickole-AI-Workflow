@@ -1,13 +1,13 @@
 # dnw workflow
 
 This project uses **dnw** (dev-nickole-workflow): spec-driven development + TDD, enforced by the `dnw` CLI.
-Run it as `npx --no-install dnw <command>` when `dnw` is not on PATH (never plain `npx dnw`, which could download an unrelated package).
+Run dnw commands as `{{dnw}} <command>`. Never use plain `npx dnw`, which could download an unrelated package.
 
 ## Project docs
 
-- `docs/architecture/`: system architecture and technical decisions
-- `docs/products/`: product context, users, goals
-- `docs/design-system/`: UI components, tokens and patterns. Reuse these in UI specs.
+- `{{architecture}}`: system architecture and technical decisions
+- `{{products}}`: product context, users, goals
+- `{{designSystem}}`: UI components, tokens and patterns. Reuse these in UI specs.
 - `docs/specs/`: one Markdown file per spec, e.g. `0001-user-login.api.md` and `0001-user-login.ui.md`
 
 Read the relevant docs before drafting a spec or writing code.

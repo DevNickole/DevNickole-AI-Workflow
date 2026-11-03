@@ -10,37 +10,65 @@ workflow stays the same whichever AI coding tool each teammate uses: Claude Code
 
 ## Install
 
+Node projects (pins every teammate to the same version):
+
 ```bash
 npm i -D dev-nickole-workflow
+```
+
+```bash
 npx dnw init
 ```
 
-Installing it as a dev dependency pins every teammate to the same version. Non-Node projects can install it
-globally (`npm i -g dev-nickole-workflow`); `dnw` warns when its version differs from the project's.
+Any other project (Flutter, Go, Python, ...):
+
+```bash
+npm i -g dev-nickole-workflow
+```
+
+```bash
+dnw init
+```
+
+`dnw` warns when its version differs from the one the project was set up with.
 
 `dnw init` asks for:
 
-1. **Tech stack**: Next.js/React, Node API, Go, Python, Other. It recommends a test framework and test commands.
-2. **AI tools** (multi-select): Claude Code, Antigravity, ChatGPT/Codex, none.
-3. **Superpowers**: on by default when an AI tool is selected.
+1. **Tech stack**: Next.js/React, Node API, Flutter/Dart, Go, Python, Other. It suggests test commands, using the project's existing test setup when it has one.
+2. **Docs locations**: architecture, product and design-system docs. Existing files are suggested.
+3. **AI tools** (multi-select): Claude Code, Antigravity, ChatGPT/Codex, none. Tools the project already uses are preselected.
+4. **Superpowers**: on by default when an AI tool is selected.
 
-Non-interactive form: `dnw init --yes --stack nextjs --ai claude,codex [--no-superpowers] [--test-command ...] [--test-file-command ...]`
+Non-interactive form: `dnw init --yes [--stack nextjs] [--ai claude,codex] [--no-superpowers] [--test-command ...] [--test-file-command ...]`. With `--yes`, everything not given is detected.
 
 ### What it creates
 
 ```
 .dnw/config.json, manifest.json     tool state (commit these)
-docs/design-system/                 components, tokens, patterns
-docs/architecture/                  system structure and decisions
-docs/products/                      product context
+docs/architecture/                  system structure and decisions   (only if the project has none)
+docs/products/                      product context                  (only if the project has none)
+docs/design-system/                 components, tokens, patterns     (only if the project has none)
 docs/specs/                         0001-user-login.api.md, 0001-user-login.ui.md, ...
 CLAUDE.md + .claude/commands/dnw-*  Claude Code
 AGENTS.md                           ChatGPT/Codex
 .agents/rules/dnw.md                Antigravity
 ```
 
-Existing `docs/` files and existing `CLAUDE.md` / `AGENTS.md` content are kept. dnw writes only between
-`<!-- dnw:start -->` and `<!-- dnw:end -->`.
+## Add dnw to an existing project
+
+`dnw init` adapts to what is already there and changes nothing it does not own:
+
+| Already in the project | What dnw does |
+|---|---|
+| `docs/architecture.md`, `docs/mvp.md`, `lib/theme/`, ... | Maps them in `.dnw/config.json` and points the AI instructions at them. No duplicate folders. |
+| A test setup (Jest, Vitest, Mocha, `flutter test`, pnpm/yarn/bun) | Uses it instead of recommending a new one. |
+| `CLAUDE.md`, `AGENTS.md` | Keeps your content; dnw writes only between `<!-- dnw:start -->` and `<!-- dnw:end -->`. |
+| `.claude/commands/`, `.agents/skills/`, other docs | Untouched. dnw adds its own `dnw-*` commands and `.agents/rules/dnw.md`. |
+| `.claude/settings.json` | Adds one `enabledPlugins` key for superpowers and keeps every other setting. |
+| No `package.json` | Generated commands call `dnw` directly instead of `npx --no-install dnw`. |
+
+Run `dnw init` from the project root. Inside a folder that already belongs to a dnw project, it refuses and names that
+project's root.
 
 ## Lifecycle
 

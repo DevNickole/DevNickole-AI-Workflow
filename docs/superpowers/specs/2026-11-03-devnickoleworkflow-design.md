@@ -71,7 +71,7 @@ Each `core/` module has one responsibility and no dependency on `commands/`. Com
 
 ```
 .dnw/
-  config.json             stack, testCommand, testFileCommand, aiTools, superpowers, toolVersion
+  config.json             stack, testCommand, testFileCommand, aiTools, superpowers, docs, command, toolVersion
   manifest.json           managed file paths + content hashes
   runs.json               per-task red/green evidence (timestamps, exit codes)
 docs/
@@ -176,25 +176,39 @@ Malformed spec files (bad frontmatter, unknown status, task without test path) p
 
 Interactive flow:
 
-1. Detect stack from `package.json` (Next.js / React / Express / NestJS), `go.mod`, `pyproject.toml`; preselect the guess.
-2. **Stack:** Next.js/React, Node API, Go, Python, Other.
-3. **Test framework:** recommend based on stack; user accepts or edits `testCommand` and `testFileCommand`.
+`init` must work in new **and existing** projects: it adopts what is already there and changes nothing it does not own.
 
-   | Stack | Recommended | testCommand | testFileCommand |
+0. Refuse when the folder is inside another dnw project (a parent has `.dnw/config.json`); name that root.
+1. Detect stack: `pubspec.yaml` → Flutter (checked first; Flutter repos may carry a tooling `package.json`), `package.json` (Next.js / React vs Node API), `go.mod`, `pyproject.toml`/`requirements.txt`; preselect the guess.
+2. **Stack:** Next.js/React, Node API, Flutter/Dart, Go, Python, Other.
+3. **Test commands:** use the project's existing setup when it has one, else recommend; user accepts or edits `testCommand` and `testFileCommand`.
+
+   | Stack | No existing tests | testCommand | testFileCommand |
    |---|---|---|---|
-   | Next.js/React | Vitest + Playwright | `npm test` | `npx vitest run {file}` |
-   | Node API | Vitest | `npm test` | `npx vitest run {file}` |
+   | Next.js/React | Vitest + Playwright | `<pm> test` | `npx vitest run {file}` |
+   | Node API | Vitest | `<pm> test` | `npx vitest run {file}` |
+   | Flutter | flutter_test | `flutter test` | `flutter test {file}` |
    | Go | go test | `go test ./...` | `go test ./{dir}` |
    | Python | pytest | `pytest` | `pytest {file}` |
    | Other | — | user input | user input |
 
-4. **AI tools** (multi-select): Claude Code, Antigravity, ChatGPT/Codex, none.
-5. **Install superpowers?** (default yes; skipped when no AI tools selected). See section 6.1.
-6. Create missing folders under `docs/` (`design-system/`, `architecture/`, `products/`, `specs/`) with a short `README.md` in each. Existing folders and files are never overwritten.
-7. Write `.dnw/config.json`, generate adapter files, write `.dnw/manifest.json`.
-8. Run superpowers setup steps (section 6.1).
+   Node: `<pm>` comes from the lockfile (pnpm, yarn, bun, else npm). An existing `scripts.test` using Jest, Vitest or Mocha keeps that runner (`npx jest {file}`, `npx vitest run {file}`, `npx mocha {file}`); any other script uses `<pm> test -- {file}`. npm's placeholder script counts as no tests.
+4. **Docs locations** (`config.docs`): architecture, products, design system. Each is a file or a folder ending in `/`. Detected candidates, most specific first:
+   - architecture: `docs/architecture/`, `docs/architecture.md`, `docs/ARCHITECTURE.md`, `ARCHITECTURE.md`
+   - products: `docs/products/`, `docs/product/`, `docs/product.md`, `docs/mvp.md`, `docs/prd.md`, `docs/PRD.md`, `PRD.md`
+   - design system: `docs/design-system/`, `docs/design-system.md`, `lib/theme/`, `src/theme/`, `src/design-system/`, `src/components/ui/`
 
-Non-interactive: `dnw init --yes --stack nextjs --ai claude,codex [--no-superpowers] [--test-command ...] [--test-file-command ...]`. With `--yes`, superpowers defaults to on when AI tools are selected.
+   Defaults when nothing is found: `docs/architecture/`, `docs/products/`, `docs/design-system/`. `docs/specs/` is always dnw's.
+5. **AI tools** (multi-select), preselected from what exists: `CLAUDE.md`/`.claude/` → Claude, `AGENTS.md` → Codex, `.agents/`/`.agent/`/`GEMINI.md` → Antigravity.
+6. **Install superpowers?** (default yes; skipped when no AI tools selected). See section 6.1.
+7. Create only missing doc locations (folder + `README.md`, or the named Markdown file) and `docs/specs/`. Existing files are never overwritten.
+8. `config.command`: `npx --no-install dnw` when `package.json` lists `dev-nickole-workflow`, else `dnw`. Generated instructions use it.
+9. Write `.dnw/config.json`, generate adapter files, write `.dnw/manifest.json`.
+10. Run superpowers setup steps (section 6.1).
+
+Non-interactive: `dnw init --yes [--stack nextjs] [--ai claude,codex] [--no-superpowers] [--test-command ...] [--test-file-command ...]`. With `--yes`, everything not given is detected (stack, test commands, docs, AI tools); superpowers defaults to on when AI tools are selected.
+
+Configs without `docs` or `command` (older versions) fall back to the default folders and `npx --no-install dnw`.
 
 Re-running `init` on an initialized project exits with a message pointing to `dnw upgrade`.
 

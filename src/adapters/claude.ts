@@ -1,4 +1,4 @@
-import type { DnwConfig } from '../core/config.js';
+import { dnwCommand, type DnwConfig } from '../core/config.js';
 import type { AdapterFile } from './index.js';
 import { renderInstructions } from './instructions.js';
 
@@ -43,11 +43,13 @@ const COMMANDS: { name: string; description: string; run: string; then: string }
 
 export function claudeFiles(cfg: DnwConfig): AdapterFile[] {
   const files: AdapterFile[] = [{ path: 'CLAUDE.md', content: renderInstructions(cfg), mode: 'marker' }];
+  const dnw = dnwCommand(cfg);
   for (const c of COMMANDS) {
+    const run = c.run.replace(/^npx --no-install dnw/, dnw);
     files.push({
       path: `.claude/commands/dnw-${c.name}.md`,
       mode: 'whole',
-      content: `---\ndescription: ${c.description}\n---\nRun \`${c.run}\` and show the output.\n\n${c.then}\n`,
+      content: `---\ndescription: ${c.description}\n---\nRun \`${run}\` and show the output.\n\n${c.then}\n`,
     });
   }
   if (cfg.superpowers) {

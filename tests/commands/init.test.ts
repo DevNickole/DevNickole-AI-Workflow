@@ -17,6 +17,8 @@ test('--yes with nextjs and claude', async () => {
     testFileCommand: 'npx vitest run {file}',
     aiTools: ['claude'],
     superpowers: true,
+    docs: { architecture: 'docs/architecture/', products: 'docs/products/', designSystem: 'docs/design-system/' },
+    command: 'dnw',
   });
   expect(existsSync(join(root, 'docs/specs/README.md'))).toBe(false); // docs/specs already existed in tmpProject
   expect(existsSync(join(root, 'docs/architecture/README.md'))).toBe(true);
@@ -30,7 +32,7 @@ test('interactive go + codex + antigravity installs superpowers via agy', async 
   const calls: string[] = [];
   const ctx = testCtx({
     cwd: root,
-    answers: ['go', 'go test ./...', 'go test ./{dir}', ['codex', 'antigravity']],
+    answers: ['go', 'go test ./...', 'go test ./{dir}', 'docs/architecture/', 'docs/products/', 'docs/design-system/', ['codex', 'antigravity']],
     run: (cmd) => (calls.push(cmd), { exitCode: 0, output: '' }),
   });
   await init(ctx, {});
@@ -39,7 +41,7 @@ test('interactive go + codex + antigravity installs superpowers via agy', async 
   expect(existsSync(join(root, '.agents/rules/dnw.md'))).toBe(true);
   expect(calls).toEqual(['agy --version', 'agy plugin install https://github.com/obra/superpowers']);
   expect(ctx.outText()).toContain('Codex: In Codex run /plugins');
-  expect(ctx.outText()).toContain('Recommended test framework: go test');
+  expect(ctx.outText()).toContain('Test framework: go test');
 });
 
 test('missing agy prints the install command instead', async () => {

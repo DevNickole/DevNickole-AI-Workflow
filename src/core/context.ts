@@ -26,6 +26,8 @@ export interface Ctx {
 export interface Choice<T extends string> {
   value: T;
   name: string;
+  /** preselected in a checkbox prompt */
+  checked?: boolean;
 }
 
 export function defaultCtx(): Ctx {
