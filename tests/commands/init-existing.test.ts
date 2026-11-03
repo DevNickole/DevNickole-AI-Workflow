@@ -5,6 +5,7 @@ import { initProject, testCtx, tmpProject } from '../helpers.js';
 import { init } from '../../src/commands/init.js';
 import { readConfig } from '../../src/core/config.js';
 import type { Choice } from '../../src/core/context.js';
+import { packageVersion } from '../../src/core/version.js';
 
 const EXISTING: Record<string, string> = {
   'pubspec.yaml': 'name: catipunan\n',
@@ -35,7 +36,7 @@ test('--yes adopts the existing layout', async () => {
   await init(testCtx({ cwd: root, run: noAgy }), { yes: true });
 
   expect(readConfig(root)).toEqual({
-    toolVersion: '0.1.0',
+    toolVersion: packageVersion(),
     stack: 'flutter',
     testCommand: 'flutter test',
     testFileCommand: 'flutter test {file}',

@@ -1,6 +1,7 @@
 import type { Ctx } from '../src/core/context.js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { writeConfig, type DnwConfig } from '../src/core/config.js';
+import { packageVersion } from '../src/core/version.js';
 import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -52,7 +53,7 @@ export function testCtx(over: Partial<Ctx> & { answers?: unknown[] } = {}): Test
 export function initProject(over: Partial<DnwConfig> = {}): string {
   const root = tmpProject();
   writeConfig(root, {
-    toolVersion: '0.1.0',
+    toolVersion: packageVersion(),
     stack: 'node-api',
     testCommand: 'npm test',
     testFileCommand: 'npx vitest run {file}',

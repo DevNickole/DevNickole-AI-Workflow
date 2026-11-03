@@ -4,6 +4,7 @@ import { tmpProject, testCtx } from '../helpers.js';
 import { init } from '../../src/commands/init.js';
 import { readConfig } from '../../src/core/config.js';
 import { readManifest } from '../../src/core/manifest.js';
+import { packageVersion } from '../../src/core/version.js';
 
 const read = (root: string, p: string) => readFileSync(join(root, p), 'utf8');
 
@@ -11,7 +12,7 @@ test('--yes with nextjs and claude', async () => {
   const root = tmpProject();
   await init(testCtx({ cwd: root }), { yes: true, stack: 'nextjs', ai: ['claude'] });
   expect(readConfig(root)).toEqual({
-    toolVersion: '0.1.0',
+    toolVersion: packageVersion(),
     stack: 'nextjs',
     testCommand: 'npm test',
     testFileCommand: 'npx vitest run {file}',

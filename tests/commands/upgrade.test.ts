@@ -7,6 +7,7 @@ import { readConfig, writeConfig } from '../../src/core/config.js';
 import { hash, readManifest, writeManifest } from '../../src/core/manifest.js';
 import { changelogBetween, pendingMigrations, type Migration } from '../../src/migrations/index.js';
 import { main } from '../../src/cli.js';
+import { packageVersion } from '../../src/core/version.js';
 
 const STATUS_CMD = '.claude/commands/dnw-status.md';
 
@@ -37,7 +38,7 @@ test('replaces unmodified managed files from an older version', async () => {
   await upgrade(ctx, { yes: true, migrations: [], changelog: '' });
   expect(readFileSync(join(root, STATUS_CMD), 'utf8')).toBe(current);
   expect(ctx.outText()).not.toContain('⚠');
-  expect(readConfig(root).toolVersion).toBe('0.1.0');
+  expect(readConfig(root).toolVersion).toBe(packageVersion());
 });
 
 test('keeps locally modified files and writes .new', async () => {
@@ -79,14 +80,14 @@ test('accepted migration is applied', async () => {
   setVersion(root, '0.0.9');
   await upgrade(testCtx({ cwd: root }), { yes: true, migrations: [m('0.1.0')], changelog: '' });
   expect(readFileSync(join(root, 'docs/specs/x.md'), 'utf8')).toBe('b');
-  expect(readConfig(root).toolVersion).toBe('0.1.0');
+  expect(readConfig(root).toolVersion).toBe(packageVersion());
 });
 
 test('already up to date', async () => {
   const root = await project();
   const ctx = testCtx({ cwd: root });
   await upgrade(ctx, { migrations: [], changelog: '' });
-  expect(ctx.outText()).toContain('Already up to date (0.1.0)');
+  expect(ctx.outText()).toContain(`Already up to date (${packageVersion()})`);
 });
 
 test('project newer than installed is rejected', async () => {
@@ -115,5 +116,5 @@ test('CLI warns when project version differs', async () => {
   setVersion(root, '0.0.9');
   const ctx = testCtx({ cwd: root });
   expect(await main(['node', 'dnw', 'status'], ctx)).toBe(0);
-  expect(ctx.errText()).toContain('⚠ This project uses dnw 0.0.9; installed is 0.1.0. Run: dnw upgrade');
+  expect(ctx.errText()).toContain(`⚠ This project uses dnw 0.0.9; installed is ${packageVersion()}. Run: dnw upgrade`);
 });
