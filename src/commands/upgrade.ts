@@ -2,11 +2,11 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import semver from 'semver';
 import { adapterFiles } from '../adapters/index.js';
-import { readConfig, writeConfig } from '../core/config.js';
+import { dnwCommand, readConfig, writeConfig } from '../core/config.js';
 import { findRoot, type Ctx } from '../core/context.js';
 import { DnwError } from '../core/errors.js';
 import { managedWarnings, readManifest, writeManagedFiles, writeManifest } from '../core/manifest.js';
-import { packageVersion } from '../core/version.js';
+import { installCommand, packageVersion } from '../core/version.js';
 import { changelogBetween, migrations as allMigrations, pendingMigrations, type Migration } from '../migrations/index.js';
 
 export interface UpgradeOptions {
@@ -27,7 +27,7 @@ export async function upgrade(ctx: Ctx, opts: UpgradeOptions): Promise<void> {
   const from = cfg.toolVersion;
   const to = packageVersion();
   if (semver.gt(from, to)) {
-    throw new DnwError(`Project uses dnw ${from}, newer than installed ${to}`, 'npm i -D dev-nickole-workflow@latest');
+    throw new DnwError(`Project uses dnw ${from}, newer than installed ${to}`, installCommand(dnwCommand(cfg)));
   }
   // managed files are refreshed even when versions match, e.g. after fixing a file dnw could not update
   const result = writeManagedFiles(root, adapterFiles(cfg), readManifest(root), to);

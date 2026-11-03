@@ -10,27 +10,32 @@ workflow stays the same whichever AI coding tool each teammate uses: Claude Code
 
 ## Install
 
-Node projects (pins every teammate to the same version):
+dnw installs straight from GitHub; it is not on the npm registry. You need Node 20+ and git.
+Pin a release tag (`#v0.1.0`) so the whole team runs the same version. See
+[releases](https://github.com/DevNickole/devNickoleWorkflow/tags) for the latest tag.
+
+Node projects (saved in `package.json`, so teammates get it with `npm install`):
 
 ```bash
-npm i -D dev-nickole-workflow
+npm i -D github:DevNickole/devNickoleWorkflow#v0.1.0
 ```
 
 ```bash
 npx dnw init
 ```
 
-Any other project (Flutter, Go, Python, ...):
+Any other project (Flutter, Go, Python, ...), installed once per machine:
 
 ```bash
-npm i -g dev-nickole-workflow
+npm i -g github:DevNickole/devNickoleWorkflow#v0.1.0
 ```
 
 ```bash
 dnw init
 ```
 
-`dnw` warns when its version differs from the one the project was set up with.
+npm builds dnw during the install, so the first install takes a few seconds longer. `dnw` warns when its version
+differs from the one the project was set up with.
 
 `dnw init` asks for:
 
@@ -101,12 +106,24 @@ dnw task start 0001.api T1   ->  write the test  ->  dnw task red 0001.api T1
 
 ## Upgrading a project
 
+Install the newer tag the same way you installed dnw, then run `dnw upgrade` in the project. Node projects:
+
 ```bash
-npm i -D dev-nickole-workflow@latest
+npm i -D github:DevNickole/devNickoleWorkflow#v0.2.0
 ```
 
 ```bash
 npx dnw upgrade
+```
+
+Other projects:
+
+```bash
+npm i -g github:DevNickole/devNickoleWorkflow#v0.2.0
+```
+
+```bash
+dnw upgrade
 ```
 
 Managed files you never edited are replaced. Files you edited are kept, and the new version is written next to them
@@ -114,17 +131,25 @@ as `<file>.new`. `docs/` changes only through migrations, which show a preview a
 
 ## Releasing (maintainers)
 
+A release is a git tag on `main`. Colleagues install tags, so nothing reaches them until you tag.
+
 1. Add a `## x.y.z` section to `CHANGELOG.md`.
 2. If the spec format changed, add a migration in `src/migrations/index.ts`.
-3. Bump the version, then publish (`prepublishOnly` builds and runs the tests):
+3. Run the tests, bump the version (this commits and creates the `vx.y.z` tag), and push with the tag:
+
+```bash
+npm test
+```
 
 ```bash
 npm version minor
 ```
 
 ```bash
-npm publish
+git push --follow-tags
 ```
+
+4. Tell the team the new tag, e.g. `#v0.2.0`.
 
 ## Development
 

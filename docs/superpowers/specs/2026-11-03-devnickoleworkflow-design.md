@@ -12,7 +12,7 @@ A CLI that installs a personal spec-driven development (SDD) + TDD workflow into
 
 ### Goals
 
-- Installable per project (`npx dnw init` or `npm i -D dev-nickole-workflow`).
+- Installable per project from GitHub (`npm i -D github:DevNickole/devNickoleWorkflow#vX.Y.Z` or `npm i -g ...`, then `dnw init`); not published to the npm registry.
 - Source lives in the author's GitHub repo; released as versioned npm packages.
 - Upgradable over time without overwriting project-owned content.
 - Workflow rules are **enforced by the CLI**, not by AI prompt compliance, so behavior is identical across AI tools.
@@ -253,8 +253,8 @@ The rendered instructions gain a "Superpowers" section that maps the two workflo
 
 ## 7. Versioning and upgrades
 
-- Recommended install: `npm i -D dev-nickole-workflow` (team pinned to one version via `package.json`). Non-Node projects use a global install; the CLI warns when its version differs from `config.toolVersion`.
-- Releases follow semver. Breaking changes to spec format require a migration.
+- Distribution: installed from the public GitHub repo `DevNickole/devNickoleWorkflow`, pinned to a release tag (`#vX.Y.Z`). A `prepare` script builds `dist/` during git installs. Node projects use `npm i -D github:...` (team pinned via `package.json`); other projects use `npm i -g github:...`. The CLI warns when its version differs from `config.toolVersion`, and install hints are derived from the `repository` field.
+- Releases follow semver and are git tags (`npm version` + `git push --follow-tags`). Breaking changes to spec format require a migration.
 
 `dnw upgrade`:
 
