@@ -1,0 +1,241 @@
+# devNickoleWorkflow — Design Spec
+
+- **Date:** 2026-11-03
+- **Status:** Draft — awaiting review
+- **npm package:** `dev-nickole-workflow`
+- **CLI binary:** `dnw`
+- **Project config dir:** `.dnw/`
+
+## 1. Purpose
+
+A CLI that installs a personal spec-driven development (SDD) + TDD workflow into any project, so that a team follows the same workflow regardless of which AI coding tool each person uses (Claude Code, Antigravity, ChatGPT/Codex, or none).
+
+### Goals
+
+- Installable per project (`npx dnw init` or `npm i -D dev-nickole-workflow`).
+- Source lives in the author's GitHub repo; released as versioned npm packages.
+- Upgradable over time without overwriting project-owned content.
+- Workflow rules are **enforced by the CLI**, not by AI prompt compliance, so behavior is identical across AI tools.
+
+### Non-goals
+
+- The CLI never calls AI models or requires API keys.
+- No server, database, or hosted service. All state is plain files in git.
+- No project-specific code generation beyond docs scaffolding and AI instruction files.
+
+### Success criteria
+
+- A colleague can run `npx dnw init` in a fresh repo, answer the questions, and get a working `docs/` structure plus instruction files for their chosen AI tools.
+- An AI agent following the generated instructions cannot move a spec to `active` or mark a task done without a recorded failing test followed by a passing test.
+- `dnw upgrade` on a project initialized by an older version updates managed files and never modifies `docs/` without explicit confirmation.
+
+## 2. Architecture
+
+Approach: **CLI owns all state transitions; AI tools follow generated instructions that tell them to use the CLI.**
+
+### Tool repository layout
+
+```
+devNickoleWorkflow/
+  package.json            name: dev-nickole-workflow, bin: { dnw }, Node >= 20, TypeScript
+  src/
+    cli.ts                command routing and argument parsing
+    commands/
+      init.ts
+      spec.ts             new, review, activate, done, supersede
+      task.ts             start, red, done
+      status.ts
+      upgrade.ts
+    core/
+      lifecycle.ts        status state machine and transition guards
+      spec-file.ts        parse/write spec frontmatter and task checklist
+      config.ts           read/write .dnw/config.json
+      manifest.ts         managed-file hashes, marker-block handling
+      test-runner.ts      runs the project's test command, returns pass/fail
+      stack.ts            stack detection and test-framework recommendations
+    adapters/
+      claude.ts
+      codex.ts
+      antigravity.ts
+    migrations/           versioned migration scripts (e.g. 0002-add-field.ts)
+  templates/
+    spec.api.md
+    spec.ui.md
+    instructions.md       single source for all AI instruction files
+  tests/                  Vitest
+```
+
+Each `core/` module has one responsibility and no dependency on `commands/`. Commands compose core modules. Adapters only render `templates/instructions.md` into tool-specific files.
+
+### Project layout after `dnw init`
+
+```
+.dnw/
+  config.json             stack, testCommand, aiTools, toolVersion
+  manifest.json           managed file paths + content hashes
+  runs.json               per-task red/green evidence (timestamps, exit codes)
+docs/
+  design-system/
+  architecture/
+  products/
+  specs/
+    0001-user-login.api.md
+    0001-user-login.ui.md
+CLAUDE.md, .claude/commands/*.md     if Claude Code selected
+AGENTS.md                            if ChatGPT/Codex selected
+.agent/rules/dnw.md, .agent/workflows/*.md   if Antigravity selected
+```
+
+Ownership:
+
+- **Managed** (upgrade may replace): `.dnw/manifest.json`, AI instruction marker blocks, `.claude/commands/*`, `.agent/*`.
+- **Project-owned** (upgrade never replaces; only confirmed migrations may edit): everything in `docs/`, `.dnw/config.json`, `.dnw/runs.json`.
+
+## 3. Spec files
+
+Specs are single flat Markdown files in `docs/specs/`. Two types, for separation of concerns:
+
+- **`api`** — endpoints, request/response shapes, error cases, data models, acceptance criteria, tasks.
+- **`ui`** — screens, components (referencing `docs/design-system/`), states, user flows, acceptance criteria, tasks.
+
+### Naming and pairing
+
+- Filename: `<id>-<slug>.<type>.md`, e.g. `0001-user-login.api.md`.
+- A feature's UI and API specs **share an ID**. Either half may exist alone.
+- Spec reference format used by commands: `<id>.<type>`, e.g. `0001.api`.
+- `dnw spec new` assigns the next unused ID; `--id <id>` creates the other half of an existing pair.
+
+### Frontmatter
+
+```yaml
+---
+id: "0001"
+type: api              # api | ui
+title: User login
+status: draft          # draft | review | active | done | superseded
+dependsOn: null        # ui specs: "0001.api" when the pair has an API half
+approvedBy: null       # set by `spec activate` from git user.name
+supersededBy: null     # e.g. "0007.api"
+---
+```
+
+### Tasks section
+
+Tasks live inside the spec under `## Tasks`:
+
+```markdown
+## Tasks
+- [ ] T1: POST /auth/login returns a token for valid credentials (test: tests/auth/login.test.ts)
+- [~] T2: Locks account after 5 failures (test: tests/auth/lockout.test.ts)
+- [x] T3: ...
+```
+
+- `[ ]` todo, `[~]` in progress, `[x]` done.
+- Each task must declare exactly one test path in `(test: <path>)`.
+- Red/green evidence is stored in `.dnw/runs.json`, keyed by `<id>.<type>/<taskId>`, not in the spec file.
+
+## 4. Lifecycle and commands
+
+```
+spec new -> draft -> review -> active -> (tasks, one at a time, SDD+TDD) -> done
+                                                                       \-> superseded
+```
+
+| Command | Transition | Guards |
+|---|---|---|
+| `dnw spec new "<title>" --type api\|ui [--id <id>]` | → `draft` | Type required. With `--id`, that ID must exist and the given type must not. A new `ui` half sets `dependsOn` to the `api` half when it exists. |
+| `dnw spec review <ref>` | `draft` → `review` | All required template sections non-empty; ≥ 1 task; every task has a test path. |
+| `dnw spec activate <ref>` | `review` → `active` | Requires interactive TTY confirmation (refuses when stdin is not a TTY, so AI agents cannot self-approve). For `ui` with `dependsOn`, the API half must be `active` or `done`. Records `approvedBy`. |
+| `dnw task start <ref> <taskId>` | `[ ]` → `[~]` | Spec `active`; no other task `[~]` in the same spec. |
+| `dnw task red <ref> <taskId>` | records red | Task `[~]`; test file exists; running the task's test **fails**. Records evidence. |
+| `dnw task done <ref> <taskId>` | `[~]` → `[x]` | Red evidence recorded for this task; the task's test **passes**; the full test command passes. Records evidence. |
+| `dnw spec done <ref>` | `active` → `done` | All tasks `[x]`. |
+| `dnw spec supersede <ref> --by <ref>` | any → `superseded` | Target spec exists and has the same type. Sets `supersededBy`. |
+| `dnw status` | — | Lists specs grouped by status, the in-progress task per active spec, and the next allowed command. |
+| `dnw upgrade` | — | See section 6. |
+
+### Running a single task's test
+
+`config.json` stores two commands:
+
+- `testCommand` — full suite, e.g. `npm test`.
+- `testFileCommand` — single test with a `{file}` (test file path) or `{dir}` (its directory) placeholder, e.g. `npx vitest run {file}`, `go test ./{dir}`.
+
+### Errors
+
+Every rejected command exits non-zero and prints the reason plus the next valid command:
+
+```
+✗ Cannot activate 0001.ui: paired 0001.api is still in draft.
+  Next: dnw spec review 0001.api
+```
+
+Malformed spec files (bad frontmatter, unknown status, task without test path) produce a file:line error and no state change. Commands are atomic: a spec file is written only after all guards pass.
+
+## 5. `dnw init`
+
+Interactive flow:
+
+1. Detect stack from `package.json` (Next.js / React / Express / NestJS), `go.mod`, `pyproject.toml`; preselect the guess.
+2. **Stack:** Next.js/React, Node API, Go, Python, Other.
+3. **Test framework:** recommend based on stack; user accepts or edits `testCommand` and `testFileCommand`.
+
+   | Stack | Recommended | testCommand | testFileCommand |
+   |---|---|---|---|
+   | Next.js/React | Vitest + Playwright | `npm test` | `npx vitest run {file}` |
+   | Node API | Vitest | `npm test` | `npx vitest run {file}` |
+   | Go | go test | `go test ./...` | `go test ./{dir}` |
+   | Python | pytest | `pytest` | `pytest {file}` |
+   | Other | — | user input | user input |
+
+4. **AI tools** (multi-select): Claude Code, Antigravity, ChatGPT/Codex, none.
+5. Create missing folders under `docs/` (`design-system/`, `architecture/`, `products/`, `specs/`) with a short `README.md` in each. Existing folders and files are never overwritten.
+6. Write `.dnw/config.json`, generate adapter files, write `.dnw/manifest.json`.
+
+Non-interactive: `dnw init --yes --stack nextjs --ai claude,codex [--test-command ...] [--test-file-command ...]`.
+
+Re-running `init` on an initialized project exits with a message pointing to `dnw upgrade`.
+
+## 6. AI adapters
+
+`templates/instructions.md` is the single source. It is rendered with config values (paths, test commands) and describes:
+
+- The project docs structure and where to look for context (architecture, products, design system).
+- The spec lifecycle and that **status is changed only via `dnw` commands, never by editing frontmatter**.
+- The per-task loop: `task start` → write the test → `task red` → implement → `task done` → next task.
+- That `spec activate` is human-only.
+
+Adapter output:
+
+- **Claude Code:** marker block in `CLAUDE.md`; slash commands in `.claude/commands/` (`spec-new.md`, `spec-review.md`, `task-start.md`, `task-red.md`, `task-done.md`, `status.md`).
+- **ChatGPT/Codex:** marker block in `AGENTS.md`.
+- **Antigravity:** `.agent/rules/dnw.md` and `.agent/workflows/*.md`. Exact file conventions are verified against current Antigravity docs during implementation.
+
+Existing `CLAUDE.md` / `AGENTS.md` content is preserved: dnw writes only between `<!-- dnw:start -->` and `<!-- dnw:end -->`.
+
+## 7. Versioning and upgrades
+
+- Recommended install: `npm i -D dev-nickole-workflow` (team pinned to one version via `package.json`). Non-Node projects use a global install; the CLI warns when its version differs from `config.toolVersion`.
+- Releases follow semver. Breaking changes to spec format require a migration.
+
+`dnw upgrade`:
+
+1. Compare each managed file's current hash to `manifest.json`.
+   - Unchanged → replace with the new version.
+   - Locally modified → write `<file>.new` beside it and warn. Nothing is overwritten.
+   - Marker blocks → replaced in place; content outside markers untouched.
+2. Run pending migrations (`src/migrations/`, ordered by number, after `config.toolVersion`). Each migration shows a preview of affected `docs/` files and requires confirmation; `--yes` accepts all.
+3. Update `config.toolVersion` and `manifest.json`.
+4. Print a short changelog for versions crossed.
+
+## 8. Testing (the tool itself)
+
+- **Vitest** for unit and integration tests.
+- Unit: `lifecycle` guards (every allowed and rejected transition), `spec-file` parse/write round-trip, `manifest` hash/marker logic, `stack` detection.
+- Integration: run the built CLI against temp directories — `init` (interactive answers injected), full spec lifecycle with a fake test command that fails then passes, `upgrade` from a fixture project created by an older template version.
+- TTY guard tested by running `spec activate` with non-TTY stdin and asserting refusal.
+- The tool's own development follows TDD.
+
+## 9. Open decisions
+
+None blocking. Names (`dev-nickole-workflow`, `dnw`) can be changed before first publish.
