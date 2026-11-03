@@ -22,6 +22,7 @@
 - `spec activate` refuses when `ctx.isTTY` is false.
 - The CLI never calls an AI model or network service.
 - `docs/` is never written by `upgrade` except through a confirmed migration.
+- Superpowers identifiers exactly: Claude plugin key `superpowers@claude-plugins-official`; Antigravity command `agy plugin install https://github.com/obra/superpowers`.
 
 ## Review Focus
 
@@ -313,7 +314,7 @@ test('templates render and parse', () => {
 
   type StackId = 'nextjs' | 'node-api' | 'go' | 'python' | 'other';
   type AiTool = 'claude' | 'codex' | 'antigravity';
-  interface DnwConfig { toolVersion: string; stack: StackId; testCommand: string; testFileCommand: string; aiTools: AiTool[] }
+  interface DnwConfig { toolVersion: string; stack: StackId; testCommand: string; testFileCommand: string; aiTools: AiTool[]; superpowers: boolean }
   readConfig(root: string): DnwConfig
   writeConfig(root: string, cfg: DnwConfig): void          // pretty JSON, 2 spaces, trailing newline
   detectStack(root: string): StackId
@@ -507,19 +508,23 @@ Empty project prints `No specs yet. Next: dnw spec new "<title>" --type api`.
 
 ---
 
-### Task 9: Manifest and AI adapters
+### Task 9: Manifest, AI adapters, superpowers wiring
 
 **Files:**
-- Create: `src/core/manifest.ts`, `src/adapters/index.ts`, `src/adapters/instructions.ts`, `src/adapters/claude.ts`, `src/adapters/codex.ts`, `src/adapters/antigravity.ts`, `templates/instructions.md`
+- Create: `src/core/manifest.ts`, `src/adapters/index.ts`, `src/adapters/instructions.ts`, `src/adapters/claude.ts`, `src/adapters/codex.ts`, `src/adapters/antigravity.ts`, `src/adapters/superpowers.ts`, `templates/instructions.md`, `templates/superpowers.md`
 - Test: `tests/core/manifest.test.ts`, `tests/adapters.test.ts`
 
 **Interfaces:**
 - Consumes: `DnwConfig` (Task 4), `readTemplate`/`render` (Task 3).
 - Produces:
   ```ts
-  interface AdapterFile { path: string; content: string; mode: 'whole' | 'marker' }
+  interface AdapterFile { path: string; content: string; mode: 'whole' | 'marker' | 'json-merge' }
+    // json-merge: content is a JSON object deep-merged into the existing JSON file (created if missing)
   renderInstructions(cfg: DnwConfig): string
   adapterFiles(cfg: DnwConfig): AdapterFile[]          // union of selected tools, de-duplicated by path
+  interface SuperpowersStep { tool: AiTool; command?: string; manual?: string }
+  superpowersSteps(cfg: DnwConfig): SuperpowersStep[]  // [] when !cfg.superpowers
+  deepMerge(base: unknown, patch: unknown): unknown    // objects merge recursively; other values: patch wins
   interface Manifest { toolVersion: string; files: Record<string, string> }   // path -> sha256 of managed content
   hash(content: string): string                        // sha256 hex of content with \r\n normalized to \n
   applyMarkerBlock(existing: string | null, block: string): string
@@ -537,8 +542,13 @@ Adapter output:
 - antigravity: `.agent/rules/dnw.md` (whole, instructions) and `.agent/workflows/dnw-spec.md`, `dnw-task.md` (whole). **Before implementing, check the current Antigravity docs for rule/workflow file locations and frontmatter; if they differ, follow the docs and note the change in the commit message.**
 - `aiTools: []` → no files.
 
+Superpowers (only when `cfg.superpowers`):
+- `templates/instructions.md` contains `{{superpowersSection}}`; `renderInstructions` fills it with `templates/superpowers.md` when on, `''` when off. `templates/superpowers.md` states, as bullet rules: specs and plans live in `docs/specs/` via `dnw spec new`, overriding superpowers' `docs/superpowers/specs/` and `docs/superpowers/plans/`; tasks are the spec's `## Tasks` section; draft → brainstorming skill; each task → test-driven-development inside the dnw task loop; before `dnw task done` → verification-before-completion; bugs → systematic-debugging; status changes only via `dnw`; if superpowers skills are unavailable, tell the user the install step for their tool.
+- claude adds `{ path: '.claude/settings.json', mode: 'json-merge', content: '{"enabledPlugins":{"superpowers@claude-plugins-official":true}}' }`.
+- `superpowersSteps`: antigravity → `{ tool: 'antigravity', command: 'agy plugin install https://github.com/obra/superpowers' }`; codex → `{ tool: 'codex', manual: 'In Codex run /plugins, search "superpowers", select Install Plugin.' }`; claude → none (handled by settings file).
+
 `applyMarkerBlock`: `null` → block wrapped in markers + `\n`; existing without markers → existing + `\n\n` + wrapped block; existing with markers → replace between markers only.
-`writeManagedFiles`: for `marker` files always apply block; manifest hash = hash(block). For `whole` files: if file missing or `hash(current) === prev.files[path]` → write; else write `<path>.new` and add to `conflicts`. Manifest hash = hash(new content).
+`writeManagedFiles`: for `marker` files always apply block; manifest hash = hash(block). For `json-merge` files always `deepMerge(existingJsonOr({}), patch)` and write with 2-space indent + trailing newline; existing file that is not valid JSON → add to `conflicts`, leave it untouched, write nothing else for it; manifest hash = hash(content patch). For `whole` files: if file missing or `hash(current) === prev.files[path]` → write; else write `<path>.new` and add to `conflicts`. Manifest hash = hash(new content).
 
 - [ ] **Step 1: Write failing tests**
   - `applyMarkerBlock` three cases; user text before and after markers survives a replace.
@@ -546,6 +556,10 @@ Adapter output:
   - `adapterFiles({ aiTools: ['claude','codex'], … })` paths include `CLAUDE.md`, `AGENTS.md`, six `.claude/commands/dnw-*.md`; none under `.agent/`.
   - rendered instructions contain the config's `testCommand` and `Never run \`dnw spec activate\``.
   - `writeManagedFiles`: fresh write → no conflicts; second run with modified `.claude/commands/dnw-status.md` → that path in `conflicts`, `dnw-status.md.new` exists, original untouched; unmodified file is overwritten with new content.
+  - superpowers on + claude: existing `.claude/settings.json` `{"permissions":{"allow":["Bash(npm test)"]},"enabledPlugins":{"other@x":true}}` → after write, both original keys survive and `enabledPlugins["superpowers@claude-plugins-official"] === true`.
+  - `.claude/settings.json` containing `{ broken` → path in `conflicts`, file byte-identical.
+  - superpowers off → no `.claude/settings.json` in `adapterFiles`, instructions do not contain `superpowers`; on → instructions contain `docs/specs/` override line.
+  - `superpowersSteps({ aiTools: ['claude','codex','antigravity'], superpowers: true, … })` → two steps, antigravity command exactly `agy plugin install https://github.com/obra/superpowers`.
 - [ ] **Step 2: Run to verify fail** — `npx vitest run tests/core/manifest.test.ts tests/adapters.test.ts` — Expected: FAIL.
 - [ ] **Step 3: Implement** modules and template.
 - [ ] **Step 4: Run to verify pass** — Expected: all pass.
@@ -571,23 +585,28 @@ Adapter output:
   (`defaultCtx` uses `@inquirer/prompts`; `testCtx` takes scripted `answers: unknown[]` consumed in order.)
 - Produces:
   ```ts
-  interface InitOptions { yes?: boolean; stack?: StackId; ai?: AiTool[]; testCommand?: string; testFileCommand?: string }
+  interface InitOptions { yes?: boolean; stack?: StackId; ai?: AiTool[]; superpowers?: boolean; testCommand?: string; testFileCommand?: string }
   init(ctx: Ctx, opts: InitOptions): Promise<void>
   ```
-- CLI: `dnw init [--yes] [--stack <id>] [--ai <list>] [--test-command <cmd>] [--test-file-command <cmd>]`; `--ai none` → `[]`.
+- CLI: `dnw init [--yes] [--stack <id>] [--ai <list>] [--no-superpowers] [--test-command <cmd>] [--test-file-command <cmd>]`; `--ai none` → `[]`.
 
 Behaviour (operates on `ctx.cwd`, not `findRoot`):
 1. If `.dnw/config.json` exists → `DnwError('Already initialized', 'dnw upgrade')`.
 2. Stack: `opts.stack` ?? (yes ? detected : `select` with detected as default).
 3. Print `Recommended test framework: <framework>`. testCommand / testFileCommand: opts ?? (yes ? recommendation : `input` with recommendation as default). Stack `other` with `--yes` and no commands → `DnwError('Stack "other" needs --test-command and --test-file-command')`.
 4. AI tools: `opts.ai` ?? (yes ? `[]` : `checkbox` of Claude Code / Antigravity / ChatGPT (Codex); none checked = none).
+4b. Superpowers: `false` when `aiTools` is empty; else `opts.superpowers` ?? (yes ? `true` : `ctx.confirm('Install superpowers (brainstorming, TDD, debugging skills)?')`).
 5. For each of `design-system`, `architecture`, `products`, `specs` under `docs/`: create dir if missing; write `README.md` from template only if the dir was created.
 6. `writeConfig` with `toolVersion = packageVersion()`; `writeManagedFiles(…, prev = null)`; `writeManifest`.
-7. Print summary: created paths, then `Next: dnw spec new "<title>" --type api`.
+7. For each `superpowersSteps(cfg)` step: with `command` → if `ctx.run('agy --version', root).exitCode === 0` and (yes or `await ctx.confirm('Run: <command>?')`) → `ctx.run(command, root)`, print `✓ superpowers installed for Antigravity` on exit 0, else print `⚠ Failed; run manually: <command>`; when `agy` is missing or declined → print `Run: <command>`. With `manual` → print `Codex: <manual>`. Claude prints `✓ superpowers enabled in .claude/settings.json (teammates are prompted to install)`.
+8. Print summary: created paths, then `Next: dnw spec new "<title>" --type api`.
 
 - [ ] **Step 1: Write failing tests**
-  - `init(ctx, { yes: true, stack: 'nextjs', ai: ['claude'] })` → config equals `{ toolVersion: '0.1.0', stack: 'nextjs', testCommand: 'npm test', testFileCommand: 'npx vitest run {file}', aiTools: ['claude'] }`; `docs/specs/README.md` and `CLAUDE.md` exist; `.dnw/manifest.json` lists `CLAUDE.md`.
-  - interactive with answers `['go', 'go test ./...', 'go test ./{dir}', ['codex','antigravity']]` → config matches, `AGENTS.md` and `.agent/rules/dnw.md` exist.
+  - `init(ctx, { yes: true, stack: 'nextjs', ai: ['claude'] })` → config equals `{ toolVersion: '0.1.0', stack: 'nextjs', testCommand: 'npm test', testFileCommand: 'npx vitest run {file}', aiTools: ['claude'], superpowers: true }`; `docs/specs/README.md` and `CLAUDE.md` exist; `.claude/settings.json` has `enabledPlugins["superpowers@claude-plugins-official"] === true`; `.dnw/manifest.json` lists `CLAUDE.md`.
+  - interactive with answers `['go', 'go test ./...', 'go test ./{dir}', ['codex','antigravity']]`, `confirm → true`, and a `run` stub returning exit 0 → config matches with `superpowers: true`; `AGENTS.md` and `.agent/rules/dnw.md` exist; the stub received `agy --version` then `agy plugin install https://github.com/obra/superpowers`; output contains `Codex: In Codex run /plugins`.
+  - `run` stub returning 1 for `agy --version` → install command not run, output contains `Run: agy plugin install https://github.com/obra/superpowers`.
+  - `{ yes: true, ai: ['claude'], superpowers: false }` → `superpowers: false`, no `.claude/settings.json`.
+  - `{ yes: true, ai: [] }` → `superpowers: false`, no confirm asked.
   - existing `docs/architecture/notes.md` and existing `CLAUDE.md` with `# Mine` → both preserved; `CLAUDE.md` still starts with `# Mine`; no README written into existing `docs/architecture/`.
   - second `init` → rejects with `next: 'dnw upgrade'`.
   - `--yes --stack other` without commands → rejects.
@@ -655,7 +674,7 @@ Version warning in `cli.ts`: if `.dnw/config.json` is found from cwd and its `to
 - Consumes: the built binary `dist/bin.js`.
 
 - [ ] **Step 1: Write the failing e2e test** — in a temp dir with its own `package.json` whose `test` script is `node check.js` (`check.js` exits 0 if `src/ok.txt` exists, else 1), using `spawnSync('node', [binPath, ...args], { cwd })`:
-  1. `init --yes --stack node-api --ai claude --test-command "npm test" --test-file-command "node check.js"` → exit 0.
+  1. `init --yes --stack node-api --ai claude --test-command "npm test" --test-file-command "node check.js"` → exit 0; `.claude/settings.json` enables `superpowers@claude-plugins-official`.
   2. `spec new "Smoke" --type api` → exit 0; fill sections and add `- [ ] T1: ok file (test: check.js)`.
   3. `spec review 0001.api` → exit 0.
   4. `spec activate 0001.api` (non-TTY under spawnSync) → exit 1, stderr contains `interactive terminal`.

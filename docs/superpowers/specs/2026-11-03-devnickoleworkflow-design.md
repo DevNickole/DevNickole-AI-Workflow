@@ -71,7 +71,7 @@ Each `core/` module has one responsibility and no dependency on `commands/`. Com
 
 ```
 .dnw/
-  config.json             stack, testCommand, aiTools, toolVersion
+  config.json             stack, testCommand, testFileCommand, aiTools, superpowers, toolVersion
   manifest.json           managed file paths + content hashes
   runs.json               per-task red/green evidence (timestamps, exit codes)
 docs/
@@ -88,7 +88,7 @@ AGENTS.md                            if ChatGPT/Codex selected
 
 Ownership:
 
-- **Managed** (upgrade may replace): `.dnw/manifest.json`, AI instruction marker blocks, `.claude/commands/*`, `.agent/*`.
+- **Managed** (upgrade may replace): `.dnw/manifest.json`, AI instruction marker blocks, `.claude/commands/*`, `.agent/*`, the `enabledPlugins["superpowers@claude-plugins-official"]` key in `.claude/settings.json` (other keys untouched).
 - **Project-owned** (upgrade never replaces; only confirmed migrations may edit): everything in `docs/`, `.dnw/config.json`, `.dnw/runs.json`.
 
 ## 3. Spec files
@@ -189,10 +189,12 @@ Interactive flow:
    | Other | — | user input | user input |
 
 4. **AI tools** (multi-select): Claude Code, Antigravity, ChatGPT/Codex, none.
-5. Create missing folders under `docs/` (`design-system/`, `architecture/`, `products/`, `specs/`) with a short `README.md` in each. Existing folders and files are never overwritten.
-6. Write `.dnw/config.json`, generate adapter files, write `.dnw/manifest.json`.
+5. **Install superpowers?** (default yes; skipped when no AI tools selected). See section 6.1.
+6. Create missing folders under `docs/` (`design-system/`, `architecture/`, `products/`, `specs/`) with a short `README.md` in each. Existing folders and files are never overwritten.
+7. Write `.dnw/config.json`, generate adapter files, write `.dnw/manifest.json`.
+8. Run superpowers setup steps (section 6.1).
 
-Non-interactive: `dnw init --yes --stack nextjs --ai claude,codex [--test-command ...] [--test-file-command ...]`.
+Non-interactive: `dnw init --yes --stack nextjs --ai claude,codex [--no-superpowers] [--test-command ...] [--test-file-command ...]`. With `--yes`, superpowers defaults to on when AI tools are selected.
 
 Re-running `init` on an initialized project exits with a message pointing to `dnw upgrade`.
 
@@ -212,6 +214,28 @@ Adapter output:
 - **Antigravity:** `.agent/rules/dnw.md` and `.agent/workflows/*.md`. Exact file conventions are verified against current Antigravity docs during implementation.
 
 Existing `CLAUDE.md` / `AGENTS.md` content is preserved: dnw writes only between `<!-- dnw:start -->` and `<!-- dnw:end -->`.
+
+### 6.1 Superpowers
+
+[Superpowers](https://github.com/obra/superpowers) (skills for brainstorming, planning, TDD, debugging, review) is installed alongside dnw when `config.superpowers` is `true`. Install mechanics differ per tool:
+
+| Tool | Mechanism | What dnw does |
+|---|---|---|
+| Claude Code | Project setting, committed to the repo | Merges `"enabledPlugins": { "superpowers@claude-plugins-official": true }` into `.claude/settings.json`, keeping all other keys. Teammates are prompted to install it when they open the project. |
+| Antigravity | User-level CLI install | If `agy` is on PATH, asks to run `agy plugin install https://github.com/obra/superpowers` (with `--yes`: runs it). Otherwise prints that command. |
+| ChatGPT/Codex | Interactive marketplace only | Prints: in Codex run `/plugins`, search `superpowers`, select Install Plugin. |
+
+The rendered instructions gain a "Superpowers" section that maps the two workflows, so they do not conflict:
+
+- Spec and plan files live in `docs/specs/` via `dnw spec new`, **overriding** superpowers' default `docs/superpowers/specs/` and `docs/superpowers/plans/` locations. Tasks are the `## Tasks` section of the spec, not a separate plan file.
+- `draft` phase → use superpowers brainstorming to fill the spec.
+- Each task → use superpowers test-driven-development inside the `task start` → `task red` → `task done` loop.
+- Before `dnw task done` → use superpowers verification-before-completion.
+- Bugs during a task → use superpowers systematic-debugging.
+- Status changes still go only through `dnw` commands.
+- If superpowers skills are not available in the session, tell the user the install step for their tool.
+
+`dnw upgrade` re-applies the `.claude/settings.json` merge (managed key only) and the instructions section.
 
 ## 7. Versioning and upgrades
 
