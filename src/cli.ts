@@ -1,17 +1,9 @@
 import { Command, CommanderError } from 'commander';
+import { defaultCtx, type Ctx } from './core/context.js';
 import { DnwError } from './core/errors.js';
 import { packageVersion } from './core/version.js';
 
-export interface Io {
-  out(s: string): void;
-  err(s: string): void;
-}
-
-function defaultIo(): Io {
-  return { out: (s) => process.stdout.write(s), err: (s) => process.stderr.write(s) };
-}
-
-function buildProgram(ctx: Io): Command {
+function buildProgram(ctx: Ctx): Command {
   const program = new Command();
   program
     .name('dnw')
@@ -23,7 +15,7 @@ function buildProgram(ctx: Io): Command {
   return program;
 }
 
-export async function main(argv: string[], ctx: Io = defaultIo()): Promise<number> {
+export async function main(argv: string[], ctx: Ctx = defaultCtx()): Promise<number> {
   const program = buildProgram(ctx);
   try {
     await program.parseAsync(argv);
