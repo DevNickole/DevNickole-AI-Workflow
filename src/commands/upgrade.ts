@@ -6,6 +6,7 @@ import { dnwCommand, readConfig, writeConfig } from '../core/config.js';
 import { findRoot, type Ctx } from '../core/context.js';
 import { DnwError } from '../core/errors.js';
 import { managedWarnings, readManifest, writeManagedFiles, writeManifest } from '../core/manifest.js';
+import { skillWarnings, syncSkills } from '../core/skills.js';
 import { installCommand, packageVersion } from '../core/version.js';
 import { changelogBetween, migrations as allMigrations, pendingMigrations, type Migration } from '../migrations/index.js';
 
@@ -32,7 +33,7 @@ export async function upgrade(ctx: Ctx, opts: UpgradeOptions): Promise<void> {
   // managed files are refreshed even when versions match, e.g. after fixing a file dnw could not update
   const result = writeManagedFiles(root, adapterFiles(cfg), readManifest(root), to);
   const { manifest } = result;
-  for (const line of managedWarnings(result)) ctx.out(`${line}\n`);
+  for (const line of [...managedWarnings(result), ...skillWarnings(syncSkills(root, cfg))]) ctx.out(`${line}\n`);
   if (from === to) {
     writeManifest(root, manifest);
     ctx.out(`Already up to date (${to}); managed files refreshed\n`);

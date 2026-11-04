@@ -8,6 +8,7 @@ import { createDoc, DOC_KINDS } from '../core/docs.js';
 import { DnwError } from '../core/errors.js';
 import { managedWarnings, writeManagedFiles, writeManifest } from '../core/manifest.js';
 import { detectStack, detectTestSetup } from '../core/stack.js';
+import { skillWarnings, syncSkills } from '../core/skills.js';
 import { packageVersion } from '../core/version.js';
 const STACKS = [
     { value: 'nextjs', name: 'Next.js / React' },
@@ -141,13 +142,14 @@ export async function init(ctx, opts) {
     writeConfig(root, cfg);
     const result = writeManagedFiles(root, adapterFiles(cfg), null, cfg.toolVersion);
     writeManifest(root, result.manifest);
+    const skills = syncSkills(root, cfg);
     ctx.out(`✓ Initialized dnw ${cfg.toolVersion}\n`);
     const mapped = DOCS.filter((d) => !created.includes(docs[d.key])).map((d) => `${d.label}: ${docs[d.key]} (existing)`);
     for (const line of mapped)
         ctx.out(`  ${line}\n`);
-    for (const p of [...created, '.dnw/config.json', ...result.written])
+    for (const p of [...created, '.dnw/config.json', ...result.written, ...skills.written])
         ctx.out(`  ${p}\n`);
-    for (const line of managedWarnings(result))
+    for (const line of [...managedWarnings(result), ...skillWarnings(skills)])
         ctx.out(`${line}\n`);
     if (superpowers && result.written.includes('.claude/settings.json')) {
         ctx.out('✓ superpowers enabled in .claude/settings.json (teammates are prompted to install it)\n');

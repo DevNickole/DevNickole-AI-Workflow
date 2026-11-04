@@ -31,6 +31,8 @@ done. If a doc is missing, `dnw docs add` creates its template. `dnw status` lis
 - When unsure what to do next, run `dnw status`.
 - If `dnw status` says onboarding is not done, run `dnw onboard` and work through its steps with the user before
   anything else.
+- Change this project's skills in `.dnw/skills/`, then run `dnw skill sync`. Never edit the copies in `.claude/skills/`
+  or `.agents/skills/` that dnw manages.
 
 ## Commands
 
@@ -41,6 +43,9 @@ done. If a doc is missing, `dnw docs add` creates its template. `dnw status` lis
 - `dnw spec done <ref>`: after every task is done.
 - `dnw spec supersede <ref> --by <ref>`: mark a spec as replaced.
 - `dnw docs add [architecture|products|design-system]`: add fillable templates for missing docs. Never overwrites.
+- `dnw skill new <name> --description "<what it does and when to use it>"`: create a project skill.
+- `dnw skill edit <name>`: show which file to edit. A shared skill gets a project copy first.
+- `dnw skill sync`: check skills and copy changes to each AI tool. `dnw skill list` shows them all.
 
 ## Per-task loop (SDD + TDD)
 

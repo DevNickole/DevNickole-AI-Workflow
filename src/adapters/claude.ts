@@ -51,6 +51,12 @@ const COMMANDS: { name: string; description: string; run: string; then: string }
     run: 'npx --no-install dnw onboard',
     then: 'Work through every step it prints, in order. Ask the user one question at a time, only about what the code cannot tell you. When all steps are done, run it again with --done.',
   },
+  {
+    name: 'skill-new',
+    description: 'Create a project skill for every AI tool. Args: <name> --description "<what it does and when to use it>"',
+    run: 'npx --no-install dnw skill new $ARGUMENTS',
+    then: 'Fill in the SKILL.md it created under .dnw/skills/, asking the user about anything you cannot tell from the project. Then run dnw skill sync.',
+  },
 ];
 
 export function claudeFiles(cfg: DnwConfig): AdapterFile[] {

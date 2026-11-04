@@ -124,6 +124,43 @@ Specs are only as good as the context behind them. dnw ships fillable templates 
   drafting specs. In Claude Code, `/dnw-docs-add` does both.
 - **Reminder:** `dnw status` lists docs that still have hints, e.g. `⚠ docs/products/README.md is still a template (8 sections to fill)`.
 
+## Skills
+
+A skill is a folder with a `SKILL.md` that an AI tool loads when it is relevant, plus optional `references/` and
+`assets/`. Keep one copy and dnw writes it to each AI tool's folder: `.claude/skills/` for Claude Code,
+`.agents/skills/` for Codex and Antigravity.
+
+**Add a skill to one project:**
+
+```bash
+dnw skill new api-style --description "Use when adding or changing API endpoints."
+```
+
+Fill in `.dnw/skills/api-style/SKILL.md`, or ask your AI (`/dnw-skill-new` in Claude Code), then:
+
+```bash
+dnw skill sync
+```
+
+**Edit a skill:** `dnw skill edit <name>` shows the file to change. Run `dnw skill sync` afterwards. Editing a shared
+skill first makes a project copy, which `dnw upgrade` leaves alone. Always edit `.dnw/skills/`, not the copies in the
+AI tool folders: if a copy was edited directly, dnw keeps it and writes `SKILL.md.new` beside it.
+
+| Command | Does |
+|---|---|
+| `dnw skill new <name> --description "..."` | Create a project skill and copy it to each AI tool. |
+| `dnw skill edit <name>` | Show which file to edit. A shared skill gets a project copy first. |
+| `dnw skill sync` | Check every project skill, then copy changes to each AI tool. |
+| `dnw skill list` | List skills as shared, project, or other (not managed by dnw). |
+| `dnw skill remove <name>` | Remove a project skill and its copies. Removing a project copy of a shared skill brings the shared one back. |
+
+Skills dnw did not create, such as `.claude/skills/supabase/`, are listed as "other" and never touched. Commit
+`.dnw/skills/`, `.dnw/skills.json` and the tool folders so the team gets the same skills. `dnw status` warns when a
+skill changed and still needs `dnw skill sync`.
+
+**Add a skill for every project (maintainers):** add `skills/dnw-<name>/SKILL.md` to this repo and release a new
+version. Shared names must start with `dnw-`. `dnw init` and `dnw upgrade` install them.
+
 ## Lifecycle
 
 ```
@@ -144,6 +181,7 @@ spec new -> draft -> review -> active -> (tasks, one at a time, SDD + TDD) -> do
 | `dnw status` | Every spec with the next allowed command, plus docs that are still templates. Works from any subfolder. |
 | `dnw docs add [kind]` | Add fillable templates for missing architecture, products or design-system docs. |
 | `dnw onboard [--done]` | Checklist for your AI to learn the project (read code, write docs, ask about gaps); `--done` marks it complete. |
+| `dnw skill ...` | Add and edit AI skills. See [Skills](#skills). |
 | `dnw upgrade` | Refresh managed files and run migrations after updating dnw. |
 
 A `<ref>` is `<id>.<type>`, e.g. `0001.api`.
@@ -185,7 +223,7 @@ as `<file>.new`. `docs/` changes only through migrations, which show a preview a
 A release is a git tag on `main`. Colleagues install tags, so nothing reaches them until you tag.
 
 1. Add a `## x.y.z` section to `CHANGELOG.md`.
-2. If the spec format changed, add a migration in `src/migrations/index.ts`.
+2. If the spec format changed, add a migration in `src/migrations/index.ts`. New shared skills go in `skills/dnw-<name>/`.
 3. Bump the version. This runs the tests, rebuilds `dist/`, commits, and creates the `vx.y.z` tag. Then push with the tag:
 
 ```bash

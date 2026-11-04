@@ -3,6 +3,7 @@ import { findRoot } from '../core/context.js';
 import { unfilledDocs } from '../core/docs.js';
 import { tasksWithoutEvidence } from '../core/lifecycle.js';
 import { readRuns, runKey } from '../core/runs.js';
+import { staleSkills } from '../core/skills.js';
 import { formatRef, SPEC_STATUSES } from '../core/spec-file.js';
 import { listSpecs } from '../core/spec-store.js';
 const INDENT = ' '.repeat(12);
@@ -40,6 +41,8 @@ export async function status(ctx) {
     for (const d of unfilledDocs(root, cfg)) {
         ctx.out(`⚠ ${d.path} is still a template (${d.remaining} sections to fill)\n`);
     }
+    for (const name of staleSkills(root, cfg))
+        ctx.out(`⚠ skill ${name} changed; run dnw skill sync\n`);
     const specs = listSpecs(root);
     if (specs.length === 0) {
         ctx.out('No specs yet. Next: dnw spec new "<title>" --type api\n');

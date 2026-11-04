@@ -74,6 +74,8 @@ Each `core/` module has one responsibility and no dependency on `commands/`. Com
   config.json             stack, testCommand, testFileCommand, aiTools, superpowers, docs, command, toolVersion
   manifest.json           managed file paths + content hashes
   runs.json               per-task red/green evidence (timestamps, exit codes)
+  skills/<name>/          project skill sources (SKILL.md, references/, assets/)
+  skills.json             each installed skill's source and last copied hash
 docs/
   design-system/
   architecture/
@@ -84,12 +86,14 @@ docs/
 CLAUDE.md, .claude/commands/*.md     if Claude Code selected
 AGENTS.md                            if ChatGPT/Codex selected
 .agents/rules/dnw.md                 if Antigravity selected
+.claude/skills/<name>/               skill copies if Claude Code selected
+.agents/skills/<name>/               skill copies if Codex or Antigravity selected
 ```
 
 Ownership:
 
-- **Managed** (upgrade may replace): `.dnw/manifest.json`, AI instruction marker blocks, `.claude/commands/*`, `.agents/rules/dnw.md`, the `enabledPlugins["superpowers@claude-plugins-official"]` key in `.claude/settings.json` (other keys untouched).
-- **Project-owned** (upgrade never replaces; only confirmed migrations may edit): everything in `docs/`, `.dnw/config.json`, `.dnw/runs.json`.
+- **Managed** (upgrade may replace): `.dnw/manifest.json`, `.dnw/skills.json`, AI instruction marker blocks, `.claude/commands/*`, `.agents/rules/dnw.md`, skill copies dnw installed and nobody edited, the `enabledPlugins["superpowers@claude-plugins-official"]` key in `.claude/settings.json` (other keys untouched).
+- **Project-owned** (upgrade never replaces; only confirmed migrations may edit): everything in `docs/`, `.dnw/config.json`, `.dnw/runs.json`, `.dnw/skills/`, and any skill folder dnw did not install.
 
 ## 3. Spec files
 
@@ -154,6 +158,7 @@ spec new -> draft -> review -> active -> (tasks, one at a time, SDD+TDD) -> done
 | `dnw status` | — | Lists docs that are still unfilled templates, then specs grouped by status, the in-progress task per active spec, and the next allowed command. |
 | `dnw docs add [architecture\|products\|design-system]` | — | Writes the fillable template for each mapped doc location that does not exist yet (all missing ones when no kind is given). Never overwrites or writes into an existing file or folder; naming an existing one is an error. |
 | `dnw onboard [--done]` | — | Prints the onboarding checklist (§5.2); `--done` sets `onboarded: true`. |
+| `dnw skill new\|edit\|sync\|list\|remove` | — | Manage AI skills (§6.2). |
 | `dnw upgrade` | — | See section 6. |
 
 ### Running a single task's test
@@ -273,6 +278,32 @@ The rendered instructions gain a "Superpowers" section that maps the two workflo
 - If superpowers skills are not available in the session, tell the user the install step for their tool.
 
 `dnw upgrade` re-applies the `.claude/settings.json` merge (managed key only) and the instructions section.
+
+### 6.2 Skills
+
+A skill is a folder with `SKILL.md` (frontmatter: `name` matching the folder, `description`) and optional supporting files. There are two sources:
+
+- **Shared:** `skills/<name>/` in the dnw repo, shipped in the package. Names start with `dnw-`. The first is `dnw-spec-writing`.
+- **Project:** `.dnw/skills/<name>/`, committed to the project. A project skill with a shared skill's name replaces it. The `dnw-` prefix is refused by `skill new`, and only `skill edit` on a shared skill creates such a copy.
+
+`syncSkills` copies each source to `.claude/skills/<name>/` (Claude Code) and `.agents/skills/<name>/` (Codex, Antigravity), byte for byte, including binary files. `.dnw/skills.json` records each skill's source and the hash last copied out:
+
+- Copy matches the source: nothing to do.
+- Copy missing, or still matching the recorded hash: replaced from the source.
+- Otherwise the copy was edited by hand: kept, with the new `SKILL.md` written beside it as `SKILL.md.new` and a warning.
+- A recorded skill with no source any more (a removed project skill, or a shared skill a later release dropped): untouched copies are removed; edited ones are kept with a warning.
+
+`init` and `upgrade` run this sync, including when versions already match. Folders with no record are never touched; they are listed as "other".
+
+| Command | Behavior |
+|---|---|
+| `dnw skill new <name> --description "..."` | Name must be lowercase with hyphens and not start with `dnw-`, and must not exist as a shared skill, project skill or tool folder. Creates `SKILL.md` from `templates/skill.md`, then syncs. |
+| `dnw skill edit <name>` | Prints the project file to edit. A shared skill is first copied to `.dnw/skills/`. A skill dnw does not manage is an error. |
+| `dnw skill sync` | Validates every project skill first (errors give file and line, and nothing is copied), then syncs. |
+| `dnw skill list` | Groups skills as shared, project, or other. |
+| `dnw skill remove <name>` | Project skills only. Needs `--yes`, or confirmation in a terminal. Deletes the source, then syncs, which restores the shared skill when one exists. |
+
+`dnw status` warns `⚠ skill <name> changed; run dnw skill sync` while a project skill differs from a tool copy. The AI instructions direct agents to `.dnw/skills/` and `dnw skill sync`. Claude Code also gets `/dnw-skill-new`.
 
 ## 7. Versioning and upgrades
 

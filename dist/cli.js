@@ -2,6 +2,7 @@ import { Command, CommanderError, Option } from 'commander';
 import { docsAdd } from './commands/docs.js';
 import { init } from './commands/init.js';
 import { onboard } from './commands/onboard.js';
+import { skillEdit, skillList, skillNew, skillRemove, skillSync } from './commands/skill.js';
 import { upgrade } from './commands/upgrade.js';
 import { readConfig } from './core/config.js';
 import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
@@ -97,7 +98,21 @@ function buildProgram(ctx) {
         .description('checklist for your AI to learn this project: read the code, write the docs, ask about gaps')
         .option('--done', 'mark onboarding complete')
         .action((o) => onboard(ctx, { done: o.done }));
-    for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands, ...docs.commands]) {
+    const skill = program.command('skill').description('Add and edit AI skills; dnw copies them to each AI tool');
+    skill
+        .command('new <name>')
+        .description('create a project skill')
+        .requiredOption('--description <text>', 'what the skill does and when to use it')
+        .action((name, o) => skillNew(ctx, name, o));
+    skill.command('edit <name>').description('show which file to edit; a shared skill gets a project copy').action((name) => skillEdit(ctx, name));
+    skill.command('sync').description('check skills and copy changes to each AI tool').action(() => skillSync(ctx));
+    skill.command('list').description('list shared, project and other skills').action(() => skillList(ctx));
+    skill
+        .command('remove <name>')
+        .description('remove a project skill and its copies')
+        .option('-y, --yes', 'skip the confirmation')
+        .action((name, o) => skillRemove(ctx, name, o));
+    for (const cmd of [program, ...program.commands, ...spec.commands, ...task.commands, ...docs.commands, ...skill.commands]) {
         cmd.exitOverride().configureOutput({ writeOut: ctx.out, writeErr: ctx.err });
     }
     return program;
