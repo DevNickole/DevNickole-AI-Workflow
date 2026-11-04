@@ -130,17 +130,33 @@ A skill is a folder with a `SKILL.md` that an AI tool loads when it is relevant,
 `assets/`. Keep one copy and dnw writes it to each AI tool's folder: `.claude/skills/` for Claude Code,
 `.agents/skills/` for Codex and Antigravity.
 
-**Add a skill to one project:**
+**Write your own skill:**
 
 ```bash
 dnw skill new api-style --description "Use when adding or changing API endpoints."
 ```
 
-Fill in `.dnw/skills/api-style/SKILL.md`, or ask your AI (`/dnw-skill-new` in Claude Code), then:
+Leave out `--description` and dnw asks for it. Then write `.dnw/skills/api-style/SKILL.md` yourself, or have your AI
+write it with you: `/dnw-skill-new` in Claude Code, or just ask, since the shared `dnw-skill-writing` skill teaches any
+AI tool how. When it's ready:
 
 ```bash
 dnw skill sync
 ```
+
+**Download a skill:**
+
+```bash
+dnw skill add supabase/agent-skills --skill supabase
+```
+
+The source can be `owner/repo`, a git URL or a local folder. If a repo has several skills and you leave out `--skill`,
+dnw lets you choose. Before installing, it shows the description, source commit and files, and flags anything that is
+not Markdown. Only add skills you trust: a skill is instructions your AI will follow, and it can include scripts. dnw
+never runs anything from a skill, and it refuses skills containing symlinks.
+
+**Bring in a skill you already have:** `dnw skill adopt <name>` puts a skill listed as "other" under dnw, so it reaches
+every AI tool. If its copies differ, dnw stops and names them.
 
 **Edit a skill:** `dnw skill edit <name>` shows the file to change. Run `dnw skill sync` afterwards. Editing a shared
 skill first makes a project copy, which `dnw upgrade` leaves alone. Always edit `.dnw/skills/`, not the copies in the
@@ -148,13 +164,16 @@ AI tool folders: if a copy was edited directly, dnw keeps it and writes `SKILL.m
 
 | Command | Does |
 |---|---|
-| `dnw skill new <name> --description "..."` | Create a project skill and copy it to each AI tool. |
+| `dnw skill new <name> [--description "..."]` | Create a project skill and copy it to each AI tool. |
+| `dnw skill add <source> [--skill <name>] [--yes]` | Download a skill from `owner/repo`, a git URL or a local folder. |
+| `dnw skill adopt <name>` | Bring a skill dnw did not create under dnw. |
 | `dnw skill edit <name>` | Show which file to edit. A shared skill gets a project copy first. |
 | `dnw skill sync` | Check every project skill, then copy changes to each AI tool. |
 | `dnw skill list` | List skills as shared, project, or other (not managed by dnw). |
 | `dnw skill remove <name>` | Remove a project skill and its copies. Removing a project copy of a shared skill brings the shared one back. |
 
-Skills dnw did not create, such as `.claude/skills/supabase/`, are listed as "other" and never touched. Commit
+Skills dnw did not create, such as `.claude/skills/supabase/`, are listed as "other" and left alone unless you adopt
+them. There is no `dnw skill update` yet: to update a downloaded skill, remove it and add it again. Commit
 `.dnw/skills/`, `.dnw/skills.json` and the tool folders so the team gets the same skills. `dnw status` warns when a
 skill changed and still needs `dnw skill sync`.
 

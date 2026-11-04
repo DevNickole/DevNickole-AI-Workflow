@@ -2,7 +2,7 @@ import { Command, CommanderError, Option } from 'commander';
 import { docsAdd } from './commands/docs.js';
 import { init } from './commands/init.js';
 import { onboard } from './commands/onboard.js';
-import { skillEdit, skillList, skillNew, skillRemove, skillSync } from './commands/skill.js';
+import { skillAdd, skillAdopt, skillEdit, skillList, skillNew, skillRemove, skillSync } from './commands/skill.js';
 import { upgrade } from './commands/upgrade.js';
 import { readConfig } from './core/config.js';
 import { specActivate, specDone, specNew, specReview, specSupersede } from './commands/spec.js';
@@ -102,8 +102,15 @@ function buildProgram(ctx) {
     skill
         .command('new <name>')
         .description('create a project skill')
-        .requiredOption('--description <text>', 'what the skill does and when to use it')
+        .option('--description <text>', 'what the skill does and when to use it; asked for when left out')
         .action((name, o) => skillNew(ctx, name, o));
+    skill
+        .command('add <source>')
+        .description('download a skill from owner/repo, a git URL or a local folder')
+        .option('--skill <name>', 'which skill, when the source has several')
+        .option('-y, --yes', 'skip the confirmation')
+        .action((source, o) => skillAdd(ctx, source, o));
+    skill.command('adopt <name>').description('bring a skill dnw did not create under dnw').action((name) => skillAdopt(ctx, name));
     skill.command('edit <name>').description('show which file to edit; a shared skill gets a project copy').action((name) => skillEdit(ctx, name));
     skill.command('sync').description('check skills and copy changes to each AI tool').action(() => skillSync(ctx));
     skill.command('list').description('list shared, project and other skills').action(() => skillList(ctx));

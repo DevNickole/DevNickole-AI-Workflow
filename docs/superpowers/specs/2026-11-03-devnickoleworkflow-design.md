@@ -158,7 +158,7 @@ spec new -> draft -> review -> active -> (tasks, one at a time, SDD+TDD) -> done
 | `dnw status` | — | Lists docs that are still unfilled templates, then specs grouped by status, the in-progress task per active spec, and the next allowed command. |
 | `dnw docs add [architecture\|products\|design-system]` | — | Writes the fillable template for each mapped doc location that does not exist yet (all missing ones when no kind is given). Never overwrites or writes into an existing file or folder; naming an existing one is an error. |
 | `dnw onboard [--done]` | — | Prints the onboarding checklist (§5.2); `--done` sets `onboarded: true`. |
-| `dnw skill new\|edit\|sync\|list\|remove` | — | Manage AI skills (§6.2). |
+| `dnw skill new\|add\|adopt\|edit\|sync\|list\|remove` | — | Manage AI skills (§6.2). |
 | `dnw upgrade` | — | See section 6. |
 
 ### Running a single task's test
@@ -283,27 +283,29 @@ The rendered instructions gain a "Superpowers" section that maps the two workflo
 
 A skill is a folder with `SKILL.md` (frontmatter: `name` matching the folder, `description`) and optional supporting files. There are two sources:
 
-- **Shared:** `skills/<name>/` in the dnw repo, shipped in the package. Names start with `dnw-`. The first is `dnw-spec-writing`.
+- **Shared:** `skills/<name>/` in the dnw repo, shipped in the package. Names start with `dnw-`. Two ship today: `dnw-spec-writing` and `dnw-skill-writing`.
 - **Project:** `.dnw/skills/<name>/`, committed to the project. A project skill with a shared skill's name replaces it. The `dnw-` prefix is refused by `skill new`, and only `skill edit` on a shared skill creates such a copy.
 
-`syncSkills` copies each source to `.claude/skills/<name>/` (Claude Code) and `.agents/skills/<name>/` (Codex, Antigravity), byte for byte, including binary files. `.dnw/skills.json` records each skill's source and the hash last copied out:
+`syncSkills` copies each source to `.claude/skills/<name>/` (Claude Code) and `.agents/skills/<name>/` (Codex, Antigravity), byte for byte, including binary files. `.dnw/skills.json` records each skill's source, the hash last copied out, and for a downloaded skill its origin (source, path, commit):
 
 - Copy matches the source: nothing to do.
 - Copy missing, or still matching the recorded hash: replaced from the source.
 - Otherwise the copy was edited by hand: kept, with the new `SKILL.md` written beside it as `SKILL.md.new` and a warning.
 - A recorded skill with no source any more (a removed project skill, or a shared skill a later release dropped): untouched copies are removed; edited ones are kept with a warning.
 
-`init` and `upgrade` run this sync, including when versions already match. Folders with no record are never touched; they are listed as "other".
+`init` and `upgrade` run this sync, including when versions already match. Folders with no record are never touched; they are listed as "other". A tool folder may be a link to another tool's copy, as `npx skills` makes; links count as skills, and removing one removes only the link.
 
 | Command | Behavior |
 |---|---|
-| `dnw skill new <name> --description "..."` | Name must be lowercase with hyphens and not start with `dnw-`, and must not exist as a shared skill, project skill or tool folder. Creates `SKILL.md` from `templates/skill.md`, then syncs. |
+| `dnw skill new <name> [--description "..."]` | Name must be lowercase with hyphens and not start with `dnw-`, and must not exist as a shared skill, project skill or tool folder. The description is asked for in a terminal and required otherwise. Creates `SKILL.md` from `templates/skill.md`, then syncs. |
+| `dnw skill add <source> [--skill <name>] [--yes]` | Source is `owner/repo`, an `https://`, `ssh://`, `git@` or `file://` URL, or a local folder. Git sources use a shallow clone without a shell. Finds every `SKILL.md`; several skills need `--skill`, or a choice in a terminal. Every chosen skill must pass the `skill new` name rules and `skill sync` checks, and contain no symlinks, before anything is copied. Prints the description, source commit and files, flagging anything not Markdown with control characters removed. Needs `--yes`, or confirmation in a terminal. Nothing from a skill is run. |
+| `dnw skill adopt <name>` | For a skill listed as "other". Refuses when its copies differ, contain symlinks or fail validation. Copies it to `.dnw/skills/`, then syncs. Warns when `skills-lock.json` also tracks it, because that tool's updates will count as hand edits. |
 | `dnw skill edit <name>` | Prints the project file to edit. A shared skill is first copied to `.dnw/skills/`. A skill dnw does not manage is an error. |
 | `dnw skill sync` | Validates every project skill first (errors give file and line, and nothing is copied), then syncs. |
 | `dnw skill list` | Groups skills as shared, project, or other. |
 | `dnw skill remove <name>` | Project skills only. Needs `--yes`, or confirmation in a terminal. Deletes the source, then syncs, which restores the shared skill when one exists. |
 
-`dnw status` warns `⚠ skill <name> changed; run dnw skill sync` while a project skill differs from a tool copy. The AI instructions direct agents to `.dnw/skills/` and `dnw skill sync`. Claude Code also gets `/dnw-skill-new`.
+`dnw status` warns `⚠ skill <name> changed; run dnw skill sync` while a project skill differs from a tool copy. The AI instructions direct agents to `.dnw/skills/` and `dnw skill sync`, and say to add a downloaded skill only when the user asks and to pass `--yes` only after they approve what it printed. Claude Code also gets `/dnw-skill-new` and `/dnw-skill-add`. There is no update command: remove a downloaded skill and add it again.
 
 ## 7. Versioning and upgrades
 

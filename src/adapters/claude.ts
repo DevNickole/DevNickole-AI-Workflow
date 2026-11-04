@@ -55,7 +55,13 @@ const COMMANDS: { name: string; description: string; run: string; then: string }
     name: 'skill-new',
     description: 'Create a project skill for every AI tool. Args: <name> --description "<what it does and when to use it>"',
     run: 'npx --no-install dnw skill new $ARGUMENTS',
-    then: 'Fill in the SKILL.md it created under .dnw/skills/, asking the user about anything you cannot tell from the project. Then run dnw skill sync.',
+    then: 'Fill in the SKILL.md it created under .dnw/skills/, following the dnw-skill-writing skill and asking the user about anything you cannot tell from the project. Then run dnw skill sync.',
+  },
+  {
+    name: 'skill-add',
+    description: 'Download a skill for every AI tool. Args: <owner/repo, git URL or folder> [--skill <name>]',
+    run: 'npx --no-install dnw skill add $ARGUMENTS',
+    then: 'It stops before installing and prints what the skill contains. Show that to the user, including any files flagged as not Markdown. Run it again with --yes only after the user approves.',
   },
 ];
 

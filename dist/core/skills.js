@@ -24,11 +24,12 @@ export function skillTargets(cfg) {
 export function sharedSkillsDir() {
     return fileURLToPath(new URL('../../skills/', import.meta.url));
 }
+/** Sub-folders of dir, including links to folders: tools like `npx skills` link one AI tool's folder to another's. */
 function folderNames(dir) {
     if (!existsSync(dir))
         return [];
     return readdirSync(dir, { withFileTypes: true })
-        .filter((e) => e.isDirectory())
+        .filter((e) => e.isDirectory() || (e.isSymbolicLink() && existsSync(join(dir, e.name)) && statSync(join(dir, e.name)).isDirectory()))
         .map((e) => e.name)
         .sort();
 }
@@ -53,11 +54,23 @@ export function writeSkillRecords(root, records) {
     mkdirSync(dirname(recordsPath(root)), { recursive: true });
     writeFileSync(recordsPath(root), JSON.stringify(records, null, 2) + '\n');
 }
-function listFiles(dir, prefix = '') {
+/** Every file in a skill folder, relative and with forward slashes. Links inside it are skipped. */
+export function listFiles(dir, prefix = '') {
     return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
         const rel = `${prefix}${e.name}`;
+        if (e.isSymbolicLink())
+            return [];
         return e.isDirectory() ? listFiles(join(dir, e.name), `${rel}/`) : [rel];
     });
+}
+/** Refuses a skill with links inside: a link could pull a private file into the skill. */
+export function assertNoSymlinks(dir, shown = dir) {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (e.isSymbolicLink())
+            throw new DnwError(`${shown}/${e.name} is a symlink; skills with symlinks are refused`);
+        if (e.isDirectory())
+            assertNoSymlinks(join(dir, e.name), `${shown}/${e.name}`);
+    }
 }
 /** Hash of every file in a skill folder, as raw bytes. `.new` files left by dnw are ignored. */
 export function hashDir(dir) {
@@ -67,9 +80,8 @@ export function hashDir(dir) {
     }
     return hash.digest('hex');
 }
-/** Checks a skill folder: a SKILL.md whose name matches the folder, and a description. */
-export function validateSkill(dir, name) {
-    const file = join(dir, 'SKILL.md');
+/** Parses a SKILL.md's frontmatter. `lineOf` gives a key's line for error messages. */
+export function readSkillMeta(file) {
     if (!existsSync(file) || !statSync(file).isFile())
         throw new SpecParseError(file, 1, 'SKILL.md is missing');
     const lines = readFileSync(file, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n').split('\n');
@@ -90,6 +102,12 @@ export function validateSkill(dir, name) {
     catch (e) {
         throw new SpecParseError(file, 1, `invalid frontmatter: ${e.message}`);
     }
+    return { meta, lineOf };
+}
+/** Checks a skill folder: a SKILL.md whose name matches the folder, and a description. */
+export function validateSkill(dir, name) {
+    const file = join(dir, 'SKILL.md');
+    const { meta, lineOf } = readSkillMeta(file);
     if (meta.name !== name)
         throw new SpecParseError(file, lineOf('name'), `name must match the folder name "${name}"`);
     if (typeof meta.description !== 'string' || !meta.description.trim()) {
@@ -133,7 +151,8 @@ export function syncSkills(root, cfg) {
                 result.conflicts.push(`${target}${name}/`);
             }
         }
-        next[name] = { source, hash };
+        const origin = source === 'project' ? records[name]?.origin : undefined;
+        next[name] = { source, hash, ...(origin && { origin }) };
     }
     // no longer wanted: a removed project skill, or a shared skill a later release dropped
     for (const [name, record] of Object.entries(records)) {

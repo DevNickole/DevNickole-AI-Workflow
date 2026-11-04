@@ -33,6 +33,7 @@ async function newSkill(root: string, name = 'api-style') {
 describe('shared skills', () => {
   test('every shipped skill is valid and prefixed', () => {
     expect(sharedSkillNames()).toContain(STARTER);
+    expect(sharedSkillNames()).toContain('dnw-skill-writing');
     for (const name of sharedSkillNames()) {
       expect(name.startsWith('dnw-')).toBe(true);
       expect(() => validateSkill(join(sharedSkillsDir(), name), name)).not.toThrow();
@@ -132,6 +133,22 @@ describe('dnw skill new', () => {
 
   test('empty description is rejected', async () =>
     expect(skillNew(testCtx({ cwd: project() }), 'x', { description: '  ' })).rejects.toThrow(/description/));
+
+  test('asks for the description in a terminal when it is left out', async () => {
+    const root = project();
+    await skillNew(testCtx({ cwd: root, answers: ['Use when writing APIs.'] }), 'api-style', {});
+    expect(frontmatter(read(root, '.dnw/skills/api-style/SKILL.md')).description).toBe('Use when writing APIs.');
+  });
+
+  test('without a terminal the description is required', async () =>
+    expect(skillNew(testCtx({ cwd: project(), isTTY: false }), 'api-style', {})).rejects.toThrow(/--description/));
+
+  test('points at the writing guide', async () => {
+    const root = project();
+    const ctx = testCtx({ cwd: root });
+    await skillNew(ctx, 'api-style', { description: 'x' });
+    expect(ctx.outText()).toContain('dnw-skill-writing');
+  });
 
   test('a name already taken by another skill is refused, and that skill is untouched', async () => {
     const root = project();
@@ -293,7 +310,7 @@ describe('dnw skill list', () => {
     const ctx = testCtx({ cwd: root });
     await skillList(ctx);
     const out = ctx.outText();
-    expect(out).toMatch(/SHARED\n\s+dnw-spec-writing/);
+    expect(out).toMatch(/SHARED\n(\s+.*\n)*\s+dnw-spec-writing/);
     expect(out).toMatch(/PROJECT\n\s+api-style/);
     expect(out).toMatch(/OTHER[^\n]*\n\s+supabase/);
   });

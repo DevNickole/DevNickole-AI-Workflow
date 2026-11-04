@@ -3,9 +3,10 @@
 ## 0.5.0
 
 - Skills: keep one copy and dnw writes it to Claude Code, Codex and Antigravity. `dnw skill new`, `edit`, `sync`, `list` and `remove` manage project skills in `.dnw/skills/`.
-- Shared skills ship with dnw and install through `dnw init` and `dnw upgrade`. The first is `dnw-spec-writing`.
+- `dnw skill add` downloads a skill from `owner/repo`, a git URL or a local folder, after showing what it contains. `dnw skill adopt` brings in a skill you already have.
+- Shared skills ship with dnw and install through `dnw init` and `dnw upgrade`: `dnw-spec-writing` and `dnw-skill-writing`.
 - Editing a shared skill makes a project copy that upgrades leave alone. Copies edited by hand are kept, with `SKILL.md.new` beside them.
-- `dnw status` warns when a skill needs `dnw skill sync`. Claude Code: `/dnw-skill-new`.
+- `dnw status` warns when a skill needs `dnw skill sync`. Claude Code: `/dnw-skill-new` and `/dnw-skill-add`.
 
 ## 0.4.0
 

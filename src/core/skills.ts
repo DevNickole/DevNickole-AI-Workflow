@@ -11,6 +11,17 @@ export interface SkillRecord {
   source: 'shared' | 'project';
   /** hash of the version dnw last copied out, used to spot copies edited by hand */
   hash: string;
+  /** where a downloaded skill came from */
+  origin?: SkillOrigin;
+}
+
+export interface SkillOrigin {
+  /** what was passed to dnw skill add */
+  source: string;
+  /** the skill's folder inside that source */
+  path: string;
+  /** null for a local folder */
+  commit: string | null;
 }
 
 export type SkillRecords = Record<string, SkillRecord>;
@@ -43,10 +54,11 @@ export function sharedSkillsDir(): string {
   return fileURLToPath(new URL('../../skills/', import.meta.url));
 }
 
+/** Sub-folders of dir, including links to folders: tools like `npx skills` link one AI tool's folder to another's. */
 function folderNames(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
+    .filter((e) => e.isDirectory() || (e.isSymbolicLink() && existsSync(join(dir, e.name)) && statSync(join(dir, e.name)).isDirectory()))
     .map((e) => e.name)
     .sort();
 }
@@ -78,11 +90,21 @@ export function writeSkillRecords(root: string, records: SkillRecords): void {
   writeFileSync(recordsPath(root), JSON.stringify(records, null, 2) + '\n');
 }
 
-function listFiles(dir: string, prefix = ''): string[] {
+/** Every file in a skill folder, relative and with forward slashes. Links inside it are skipped. */
+export function listFiles(dir: string, prefix = ''): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const rel = `${prefix}${e.name}`;
+    if (e.isSymbolicLink()) return [];
     return e.isDirectory() ? listFiles(join(dir, e.name), `${rel}/`) : [rel];
   });
+}
+
+/** Refuses a skill with links inside: a link could pull a private file into the skill. */
+export function assertNoSymlinks(dir: string, shown = dir): void {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isSymbolicLink()) throw new DnwError(`${shown}/${e.name} is a symlink; skills with symlinks are refused`);
+    if (e.isDirectory()) assertNoSymlinks(join(dir, e.name), `${shown}/${e.name}`);
+  }
 }
 
 /** Hash of every file in a skill folder, as raw bytes. `.new` files left by dnw are ignored. */
@@ -94,9 +116,8 @@ export function hashDir(dir: string): string {
   return hash.digest('hex');
 }
 
-/** Checks a skill folder: a SKILL.md whose name matches the folder, and a description. */
-export function validateSkill(dir: string, name: string): void {
-  const file = join(dir, 'SKILL.md');
+/** Parses a SKILL.md's frontmatter. `lineOf` gives a key's line for error messages. */
+export function readSkillMeta(file: string): { meta: Record<string, unknown>; lineOf: (key: string) => number } {
   if (!existsSync(file) || !statSync(file).isFile()) throw new SpecParseError(file, 1, 'SKILL.md is missing');
   const lines = readFileSync(file, 'utf8').replace(/^﻿/, '').replace(/\r\n/g, '\n').split('\n');
   if (lines[0] !== '---') throw new SpecParseError(file, 1, 'missing frontmatter (expected "---" on line 1)');
@@ -113,6 +134,13 @@ export function validateSkill(dir: string, name: string): void {
   } catch (e) {
     throw new SpecParseError(file, 1, `invalid frontmatter: ${(e as Error).message}`);
   }
+  return { meta, lineOf };
+}
+
+/** Checks a skill folder: a SKILL.md whose name matches the folder, and a description. */
+export function validateSkill(dir: string, name: string): void {
+  const file = join(dir, 'SKILL.md');
+  const { meta, lineOf } = readSkillMeta(file);
   if (meta.name !== name) throw new SpecParseError(file, lineOf('name'), `name must match the folder name "${name}"`);
   if (typeof meta.description !== 'string' || !meta.description.trim()) {
     throw new SpecParseError(file, lineOf('description'), 'description is required: say what the skill does and when to use it');
@@ -155,7 +183,8 @@ export function syncSkills(root: string, cfg: DnwConfig): SkillSyncResult {
         result.conflicts.push(`${target}${name}/`);
       }
     }
-    next[name] = { source, hash };
+    const origin = source === 'project' ? records[name]?.origin : undefined;
+    next[name] = { source, hash, ...(origin && { origin }) };
   }
 
   // no longer wanted: a removed project skill, or a shared skill a later release dropped
