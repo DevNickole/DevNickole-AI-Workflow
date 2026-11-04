@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- Fixed a crash when output is piped to something that stops reading early, like `head`. dnw now finishes the work and exits normally.
+
 ## 0.5.0
 
 - Skills: keep one copy and dnw writes it to Claude Code, Codex and Antigravity. `dnw skill new`, `edit`, `sync`, `list` and `remove` manage project skills in `.dnw/skills/`.
